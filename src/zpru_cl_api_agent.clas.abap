@@ -27,8 +27,25 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
   METHOD zpru_if_api_agent~initialize.
 
-*  SELECT * FROM ZPRU_AGENT WHERE agent_name = iv_agent_name INTO ms_agent
-*  SELECT * FROM ZPRU_AGENT_PRMPT INTO ms_agent_prompt
+    SELECT * FROM zpru_agent
+    WHERE agent_name = @iv_agent_name
+    INTO TABLE @DATA(lt_agent).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    ms_agent = VALUE #( lt_agent[ 1 ] OPTIONAL ).
+
+    IF ms_agent IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT * FROM zpru_agent_prmpt
+    WHERE agent_uuid = @ms_agent-agent_uuid AND
+          spras      = @sy-langu
+    INTO @ms_agent_prompt UP TO 1 ROWS.
+    ENDSELECT.
+
 *  SELECT * FROM ZPRU_AGENT_TOOL INTO mt_agent_tools
 
   ENDMETHOD.
@@ -47,11 +64,11 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     DATA: lo_decision_provider TYPE REF TO zpru_if_decision_provider.
     CREATE OBJECT lo_decision_provider TYPE (ms_agent-decision_provider).
 
-    lo_decision_provider->make_decision(
-      EXPORTING
-        iv_input  = mv_input_query
-      IMPORTING
-        ev_output = DATA(lv_output) ).
+*      lo_decision_provider->make_decision(
+*        EXPORTING
+*          iv_input  = mv_input_query
+*        IMPORTING
+*          ev_output = DATA(lv_output) ).
 
 
 
