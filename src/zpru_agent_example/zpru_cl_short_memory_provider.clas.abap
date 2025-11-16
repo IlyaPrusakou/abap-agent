@@ -13,7 +13,7 @@ ENDCLASS.
 
 
 
-CLASS zpru_cl_short_memory_provider IMPLEMENTATION.
+CLASS ZPRU_CL_SHORT_MEMORY_PROVIDER IMPLEMENTATION.
 
 
   METHOD zpru_if_short_memory_provider~clear_history.

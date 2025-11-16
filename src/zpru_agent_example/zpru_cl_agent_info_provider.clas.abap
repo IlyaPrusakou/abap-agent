@@ -13,7 +13,8 @@ ENDCLASS.
 
 
 
-CLASS zpru_cl_agent_info_provider IMPLEMENTATION.
+CLASS ZPRU_CL_AGENT_INFO_PROVIDER IMPLEMENTATION.
+
 
   METHOD zpru_if_agent_info_provider~get_agent_info.
     rv_agent_info = |\{ "agent_info" : "My First Agent" \}|.

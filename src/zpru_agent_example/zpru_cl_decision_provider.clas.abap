@@ -14,7 +14,7 @@ ENDCLASS.
 
 
 
-CLASS zpru_cl_decision_provider IMPLEMENTATION.
+CLASS ZPRU_CL_DECISION_PROVIDER IMPLEMENTATION.
 
 
   METHOD zpru_if_decision_provider~call_decision_engine.

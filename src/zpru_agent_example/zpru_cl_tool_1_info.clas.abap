@@ -13,7 +13,7 @@ ENDCLASS.
 
 
 
-CLASS zpru_cl_tool_1_info IMPLEMENTATION.
+CLASS ZPRU_CL_TOOL_1_INFO IMPLEMENTATION.
 
 
   METHOD zpru_if_tool_info_provider~get_tool_info.
