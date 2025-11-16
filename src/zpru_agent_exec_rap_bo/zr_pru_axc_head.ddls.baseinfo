@@ -6,7 +6,10 @@
 "ZPRU_AXC_HEAD"
 ],
 "ASSOCIATED":
-[],
+[
+"ZR_PRU_AXC_QUERY",
+"ZR_PRU_AXC_STEP"
+],
 "BASE":
 [],
 "ANNO_REF":

@@ -6,6 +6,9 @@
     name: 'ZC_PRU_AXC_HEAD'
   }
 }
-define service ZUI_PRU_AXC_HEAD_O4 provider contracts odata_v4_ui {
+define service ZUI_PRU_AXC_HEAD_O4
+  provider contracts odata_v4_ui {
   expose ZC_PRU_AXC_HEAD;
+  expose ZC_PRU_AXC_QUERY;
+  expose ZC_PRU_AXC_STEP;
 }

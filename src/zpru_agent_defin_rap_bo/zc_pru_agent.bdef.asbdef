@@ -3,7 +3,7 @@ strict ( 2 );
 extensible;
 use draft;
 use side effects;
-define behavior for ZC_PRU_AGENT alias ZcPruAgent
+define behavior for ZC_PRU_AGENT alias Agent
 extensible
 use etag
 {
@@ -11,10 +11,24 @@ use etag
   use update;
   use delete;
 
+  use association _tool { with draft; }
+
   use action Edit;
   use action Activate;
   use action Discard;
   use action Resume;
   use action Prepare;
+
+}
+
+
+define behavior for ZC_PRU_AGENT_TOOL alias AgentTool
+extensible
+{
+
+  use update;
+  use delete;
+
+  use association _agent { with draft; }
 
 }

@@ -6,7 +6,9 @@
 "ZPRU_AGENT"
 ],
 "ASSOCIATED":
-[],
+[
+"ZR_PRU_AGENT_TOOL"
+],
 "BASE":
 [],
 "ANNO_REF":

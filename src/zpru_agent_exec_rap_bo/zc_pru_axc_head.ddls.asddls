@@ -1,16 +1,16 @@
 @Metadata.allowExtensions: true
 @Metadata.ignorePropagatedAnnotations: true
-@Endusertext: {
-  Label: '###GENERATED Core Data Service Entity'
+@EndUserText: {
+  label: '###GENERATED Core Data Service Entity'
 }
-@Objectmodel: {
-  Sapobjectnodetype.Name: 'ZPRU_AXC_HEAD'
+@ObjectModel: {
+  sapObjectNodeType.name: 'ZPRU_AXC_HEAD'
 }
 @AccessControl.authorizationCheck: #MANDATORY
 define root view entity ZC_PRU_AXC_HEAD
-  provider contract TRANSACTIONAL_QUERY
+  provider contract transactional_query
   as projection on ZR_PRU_AXC_HEAD
-  association [1..1] to ZR_PRU_AXC_HEAD as _BaseEntity on $projection.RUNUUID = _BaseEntity.RUNUUID
+  association [1..1] to ZR_PRU_AXC_HEAD as _BaseEntity on $projection.RunUUID = _BaseEntity.RunUUID
 {
   key RunUUID,
   AgentUUID,
@@ -22,12 +22,14 @@ define root view entity ZC_PRU_AXC_HEAD
   CreatedAt,
   ChangedBy,
   @Semantics: {
-    Systemdatetime.Lastchangedat: true
+    systemDateTime.lastChangedAt: true
   }
   LastChanged,
   @Semantics: {
-    Systemdatetime.Localinstancelastchangedat: true
+    systemDateTime.localInstanceLastChangedAt: true
   }
   LocalLastChanged,
+  _executionquery : redirected to composition child ZC_PRU_AXC_QUERY,
+  _executionstep : redirected to ZC_PRU_AXC_STEP,
   _BaseEntity
 }

@@ -1,16 +1,16 @@
 @Metadata.allowExtensions: true
 @Metadata.ignorePropagatedAnnotations: true
-@Endusertext: {
-  Label: '###GENERATED Core Data Service Entity'
+@EndUserText: {
+  label: '###GENERATED Core Data Service Entity'
 }
-@Objectmodel: {
-  Sapobjectnodetype.Name: 'ZPRU_AGENT'
+@ObjectModel: {
+  sapObjectNodeType.name: 'ZPRU_AGENT'
 }
 @AccessControl.authorizationCheck: #MANDATORY
 define root view entity ZC_PRU_AGENT
-  provider contract TRANSACTIONAL_QUERY
+  provider contract transactional_query
   as projection on ZR_PRU_AGENT
-  association [1..1] to ZR_PRU_AGENT as _BaseEntity on $projection.AGENTUUID = _BaseEntity.AGENTUUID
+  association [1..1] to ZR_PRU_AGENT as _BaseEntity on $projection.AgentUUID = _BaseEntity.AgentUUID
 {
   key AgentUUID,
   AgentName,
@@ -24,12 +24,13 @@ define root view entity ZC_PRU_AGENT
   CreatedAt,
   ChangedBy,
   @Semantics: {
-    Systemdatetime.Lastchangedat: true
+    systemDateTime.lastChangedAt: true
   }
   LastChanged,
   @Semantics: {
-    Systemdatetime.Localinstancelastchangedat: true
+    systemDateTime.localInstanceLastChangedAt: true
   }
   LocalLastChanged,
+  _tool : redirected to composition child ZC_PRU_AGENT_TOOL,
   _BaseEntity
 }

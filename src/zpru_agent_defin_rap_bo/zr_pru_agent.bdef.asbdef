@@ -2,24 +2,24 @@ managed implementation in class ZBP_R_PRU_AGENT unique;
 strict ( 2 );
 with draft;
 extensible;
-define behavior for ZR_PRU_AGENT alias ZrPruAgent
-persistent table ZPRU_AGENT
+define behavior for ZR_PRU_AGENT alias Agent
+persistent table zpru_agent
 extensible
-draft table ZPRU_AGENT_D
+draft table zpru_agent_d
 etag master LocalLastChanged
 lock master total etag LastChanged
-authorization master( global )
+authorization master ( global )
 {
-  field ( mandatory : create )
-   AgentUUID;
+  field ( numbering : managed ) AgentUUID;
 
   field ( readonly )
-   LastChanged,
-   LocalLastChanged;
+  LastChanged,
+  LocalLastChanged;
 
-  field ( readonly : update )
-   AgentUUID;
+  field ( readonly )
+  AgentUUID;
 
+  association _tool { create; with draft; }
 
   create;
   update;
@@ -31,21 +31,50 @@ authorization master( global )
   draft action Resume;
   draft determine action Prepare;
 
-  mapping for ZPRU_AGENT corresponding extensible
-  {
-    AgentUUID = agent_uuid;
-    AgentName = agent_name;
-    DecisionProvider = decision_provider;
-    ShortMemoryProvider = short_memory_provider;
-    LongMemoryProvider = long_memory_provider;
-    AgentInfoProvider = agent_info_provider;
-    SystemPromptProvider = system_prompt_provider;
-    Status = status;
-    CreatedBy = created_by;
-    CreatedAt = created_at;
-    ChangedBy = changed_by;
-    LastChanged = last_changed;
-    LocalLastChanged = local_last_changed;
-  }
+  mapping for zpru_agent corresponding extensible
+    {
+      AgentUUID            = agent_uuid;
+      AgentName            = agent_name;
+      DecisionProvider     = decision_provider;
+      ShortMemoryProvider  = short_memory_provider;
+      LongMemoryProvider   = long_memory_provider;
+      AgentInfoProvider    = agent_info_provider;
+      SystemPromptProvider = system_prompt_provider;
+      Status               = status;
+      CreatedBy            = created_by;
+      CreatedAt            = created_at;
+      ChangedBy            = changed_by;
+      LastChanged          = last_changed;
+      LocalLastChanged     = local_last_changed;
+    }
 
+}
+
+define behavior for ZR_PRU_AGENT_TOOL alias AgentTool
+persistent table zpru_agent_tool
+extensible
+draft table zpru_agenttool_d
+etag dependent by _agent
+lock dependent by _agent
+authorization dependent by _agent
+{
+
+  field ( numbering : managed ) ToolUuid;
+  field ( readonly ) ToolUuid, AgentUuid;
+
+  update;
+  delete;
+
+  association _agent { with draft; }
+
+  mapping for zpru_agent_tool corresponding extensible
+    {
+      ToolUuid            = tool_uuid;
+      AgentUuid           = agent_uuid;
+      ToolName            = tool_name;
+      ToolProvider        = tool_provider;
+      StepType            = step_type;
+      InputSchemaProvider = input_schema_provider;
+      ToolInfoProvider    = tool_info_provider;
+    }
 }

@@ -2,28 +2,27 @@ managed implementation in class ZBP_R_PRU_AXC_HEAD unique;
 strict ( 2 );
 with draft;
 extensible;
-define behavior for ZR_PRU_AXC_HEAD alias ZrPruAxcHead
-persistent table ZPRU_AXC_HEAD
+define behavior for ZR_PRU_AXC_HEAD alias executionHeader
+persistent table zpru_axc_head
 extensible
-draft table ZPRU_AXC_HEAD_D
+draft table zpru_axc_head_d
 etag master LocalLastChanged
 lock master total etag LastChanged
-authorization master( global )
+authorization master ( global )
 {
-  field ( mandatory : create )
-   RunUUID;
+  field ( numbering : managed ) RunUUID;
 
   field ( readonly )
-   LastChanged,
-   LocalLastChanged;
-
-  field ( readonly : update )
-   RunUUID;
-
+  RunUUID,
+  LastChanged,
+  LocalLastChanged;
 
   create;
   update;
   delete;
+
+  association _executionquery { create; with draft; }
+  association _executionstep { with draft; }
 
   draft action Activate optimized;
   draft action Discard;
@@ -31,19 +30,84 @@ authorization master( global )
   draft action Resume;
   draft determine action Prepare;
 
-  mapping for ZPRU_AXC_HEAD corresponding extensible
-  {
-    RunUUID = run_uuid;
-    AgentUUID = agent_uuid;
-    UserID = user_id;
-    StartTimestamp = start_timestamp;
-    EndTimestamp = end_timestamp;
-    RunStatus = run_status;
-    CreatedBy = created_by;
-    CreatedAt = created_at;
-    ChangedBy = changed_by;
-    LastChanged = last_changed;
-    LocalLastChanged = local_last_changed;
-  }
+  mapping for zpru_axc_head corresponding extensible
+    {
+      RunUUID          = run_uuid;
+      AgentUUID        = agent_uuid;
+      UserID           = user_id;
+      StartTimestamp   = start_timestamp;
+      EndTimestamp     = end_timestamp;
+      RunStatus        = run_status;
+      CreatedBy        = created_by;
+      CreatedAt        = created_at;
+      ChangedBy        = changed_by;
+      LastChanged      = last_changed;
+      LocalLastChanged = local_last_changed;
+    }
+
+}
+
+define behavior for ZR_PRU_AXC_QUERY alias executionQuery
+persistent table zpru_axc_query
+extensible
+draft table zpru_axc_query_d
+etag dependent by _executionheader
+lock dependent by _executionheader
+authorization dependent by _executionheader
+
+{
+
+  field ( numbering : managed ) QueryUuid;
+  field ( readonly ) QueryUuid, RunUuid;
+
+  update;
+  delete;
+
+  association _executionheader { with draft; }
+  association _executionstep { create; with draft; }
+
+  mapping for zpru_axc_query corresponding extensible
+    {
+      QueryUuid      = query_uuid;
+      RunUuid        = run_uuid;
+      Language       = language;
+      InputPrompt    = input_prompt;
+      OutputResponse = output_response;
+    }
+
+}
+
+define behavior for ZR_PRU_AXC_STEP alias executionStep
+persistent table zpru_axc_step
+extensible
+draft table zpru_axc_step_d
+etag dependent by _executionheader
+lock dependent by _executionheader
+authorization dependent by _executionheader
+
+{
+
+  field ( numbering : managed ) StepUuid;
+  field ( readonly ) StepUuid, QueryUuid, RunUuid;
+
+  update;
+  delete;
+
+  association _executionquery { with draft; }
+  association _executionheader { with draft; }
+
+  mapping for zpru_axc_step corresponding extensible
+    {
+      StepUuid       = step_uuid;
+      QueryUuid      = query_uuid;
+      RunUuid        = run_uuid;
+      ToolUuid       = tool_uuid;
+      ExecutionSeq   = execution_seq;
+      StartTimestamp = start_timestamp;
+      EndTimestamp   = end_timestamp;
+      InputPrompt    = input_prompt;
+      OutputPrompt   = output_prompt;
+    }
+
 
 }

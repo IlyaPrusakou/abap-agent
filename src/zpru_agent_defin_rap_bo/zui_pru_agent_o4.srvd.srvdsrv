@@ -6,6 +6,8 @@
     name: 'ZC_PRU_AGENT'
   }
 }
-define service ZUI_PRU_AGENT_O4 provider contracts odata_v4_ui {
+define service ZUI_PRU_AGENT_O4
+  provider contracts odata_v4_ui {
   expose ZC_PRU_AGENT;
+  expose ZC_PRU_AGENT_TOOL;
 }

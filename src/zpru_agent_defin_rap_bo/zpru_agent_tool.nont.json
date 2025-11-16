@@ -1,0 +1,10 @@
+{
+  "formatVersion": "1",
+  "header": {
+    "description": "Agent Tool",
+    "originalLanguage": "en",
+    "abapLanguageVersion": "cloudDevelopment"
+  },
+  "name": "ZPRU_AGENT_TOOL",
+  "sapObjectType": "ZPRU_AGENT"
+}
