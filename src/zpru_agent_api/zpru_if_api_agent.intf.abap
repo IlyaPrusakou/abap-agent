@@ -10,7 +10,9 @@ INTERFACE zpru_if_api_agent
   METHODS set_input_query
     IMPORTING iv_input_query TYPE zpru_if_agent_frw=>ts_json.
   METHODS build_execution.
-  methods save_execution.
+  METHODS save_execution
+    IMPORTING
+      iv_do_commit TYPE abap_boolean.
   METHODS run.
   METHODS rerun_execution.
   METHODS rerun_from_step.

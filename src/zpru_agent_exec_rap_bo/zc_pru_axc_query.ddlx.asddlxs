@@ -1,0 +1,46 @@
+@Metadata.layer: #CORE
+
+annotate entity ZC_PRU_AXC_QUERY
+    with
+
+{
+  @EndUserText.label: 'QueryUUID'
+  @UI.facet: [ { label: 'General Information',
+                 id: 'GeneralInfo',
+                 purpose: #STANDARD,
+                 position: 10,
+                 type: #IDENTIFICATION_REFERENCE },
+                 { purpose: #STANDARD,
+                 type: #LINEITEM_REFERENCE,
+                 label: 'Tools',
+                 position: 20,
+                 targetElement: '_executionstep' } ]
+  @UI.identification: [ { position: 10, label: 'QueryUUID' } ]
+  @UI.lineItem: [ { position: 10, label: 'QueryUUID' } ]
+  @UI.selectionField: [ { position: 10 } ]
+  QueryUuid;
+
+  @EndUserText.label: 'RunUUID'
+  @UI.identification: [ { position: 20, label: 'RunUUID' } ]
+  @UI.lineItem: [ { position: 20, label: 'RunUUID' } ]
+  @UI.selectionField: [ { position: 20 } ]
+  RunUuid     ;
+
+  @EndUserText.label: 'Language'
+  @UI.identification: [ { position: 30, label: 'Language' } ]
+  @UI.lineItem: [ { position: 30, label: 'Language' } ]
+  @UI.selectionField: [ { position: 30 } ]
+  Language       ;
+
+  @EndUserText.label: 'InputPrompt'
+  @UI.identification: [ { position: 40, label: 'InputPrompt' } ]
+  @UI.lineItem: [ { position: 40, label: 'InputPrompt' } ]
+  @UI.selectionField: [ { position: 40 } ]
+  InputPrompt     ;
+
+  @EndUserText.label: 'OutputResponse'
+  @UI.identification: [ { position: 50, label: 'OutputResponse' } ]
+  @UI.lineItem: [ { position: 50, label: 'OutputResponse' } ]
+  @UI.selectionField: [ { position: 50 } ]
+  OutputResponse     ;
+}

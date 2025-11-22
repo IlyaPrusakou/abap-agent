@@ -1,6 +1,7 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Agent Execution Step'
 @Metadata.ignorePropagatedAnnotations: true
+@Metadata.allowExtensions: true
 define view entity ZR_PRU_AXC_STEP
   as select from zpru_axc_step
   association         to parent ZR_PRU_AXC_QUERY   as _executionquery  on $projection.QueryUuid = _executionquery.QueryUuid

@@ -1,0 +1,64 @@
+@Metadata.layer: #CORE
+
+annotate entity ZR_PRU_AXC_STEP with
+
+{
+  @EndUserText.label: 'StepUuid'
+  @UI.facet: [ { label: 'General Information',
+                 id: 'GeneralInfo',
+                 purpose: #STANDARD,
+                 position: 10,
+                 type: #IDENTIFICATION_REFERENCE } ]
+  @UI.identification: [ { position: 10, label: 'StepUuid' } ]
+  @UI.lineItem: [ { position: 10, label: 'StepUuid' } ]
+  @UI.selectionField: [ { position: 10 } ]
+  StepUuid;
+
+  @EndUserText.label: 'QueryUuid'
+  @UI.identification: [ { position: 20, label: 'QueryUuid' } ]
+  @UI.lineItem: [ { position: 20, label: 'QueryUuid' } ]
+  @UI.selectionField: [ { position: 20 } ]
+  QueryUuid;
+
+  @EndUserText.label: 'RunUuid'
+  @UI.identification: [ { position: 30, label: 'RunUuid' } ]
+  @UI.lineItem: [ { position: 30, label: 'RunUuid' } ]
+  @UI.selectionField: [ { position: 30 } ]
+  RunUuid;
+
+  @EndUserText.label: 'ToolUuid'
+  @UI.identification: [ { position: 40, label: 'ToolUuid' } ]
+  @UI.lineItem: [ { position: 40, label: 'ToolUuid' } ]
+  @UI.selectionField: [ { position: 40 } ]
+  ToolUuid;
+
+  @EndUserText.label: 'ExecutionSeq'
+  @UI.identification: [ { position: 50, label: 'ExecutionSeq' } ]
+  @UI.lineItem: [ { position: 50, label: 'ExecutionSeq' } ]
+  @UI.selectionField: [ { position: 50 } ]
+  ExecutionSeq;
+
+  @EndUserText.label: 'StartTimestamp'
+  @UI.identification: [ { position: 60, label: 'StartTimestamp' } ]
+  @UI.lineItem: [ { position: 60, label: 'StartTimestamp' } ]
+  @UI.selectionField: [ { position: 60 } ]
+  StartTimestamp;
+
+  @EndUserText.label: 'EndTimestamp'
+  @UI.identification: [ { position: 70, label: 'EndTimestamp' } ]
+  @UI.lineItem: [ { position: 70, label: 'EndTimestamp' } ]
+  @UI.selectionField: [ { position: 70 } ]
+  EndTimestamp;
+
+  @EndUserText.label: 'InputPrompt'
+  @UI.identification: [ { position: 80, label: 'InputPrompt' } ]
+  @UI.lineItem: [ { position: 80, label: 'InputPrompt' } ]
+  @UI.selectionField: [ { position: 80 } ]
+  InputPrompt;
+
+  @EndUserText.label: 'OutputPrompt'
+  @UI.identification: [ { position: 90, label: 'OutputPrompt' } ]
+  @UI.lineItem: [ { position: 90, label: 'OutputPrompt' } ]
+  @UI.selectionField: [ { position: 90 } ]
+  OutputPrompt;
+}
