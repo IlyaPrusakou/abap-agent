@@ -76,6 +76,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     DATA lo_agent_info_provider    TYPE REF TO zpru_if_agent_info_provider.
     DATA lo_system_prompt_provider TYPE REF TO zpru_if_prompt_provider.
     DATA lo_first_tool_input       TYPE REF TO zpru_if_response.
+    DATA lt_message                TYPE zpru_tt_key_value_tuple.
 
     IF    ms_agent       IS INITIAL
        OR mv_input_query IS INITIAL.
@@ -104,6 +105,21 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     mo_controller->mv_agent_uuid = ms_agent-agent_uuid.
 
+    lt_message = VALUE #( ( name  = 'STAGE'
+                            value = 'BUILD_EXECUTION' )
+                          ( name  = 'SUB STAGE'
+                            value = 'BEFORE DECISION' )
+                          ( name  = 'AGENT_NAME'
+                            value = ms_agent-agent_name )
+                          ( name  = 'SYSTEM PROMPT'
+                            value = lo_system_prompt_provider->get_system_prompt( ) )
+                          ( name  = 'AGENT INFO'
+                            value = lo_agent_info_provider->get_agent_info( ) ) ).
+
+    lo_short_memory->save_message( iv_agent_uuid   = ms_agent-agent_uuid
+                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   ir_message      = REF #( lt_message ) ).
+
     lo_decision_provider->call_decision_engine( EXPORTING io_controller          = mo_controller
                                                           io_input               = lo_query
                                                           io_system_prompt       = lo_system_prompt_provider
@@ -118,6 +134,25 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    lt_message = VALUE #( ( name  = 'STAGE'
+                            value = 'BUILD_EXECUTION' )
+                          ( name  = 'SUB STAGE'
+                            value = 'AFTER DECISION' )
+                          ( name  = 'AGENT_NAME'
+                            value = ms_agent-agent_name )
+                          ( name  = 'FIRST TOOL INPUT'
+                            value = lo_first_tool_input->get_data( )->* ) ).
+
+    LOOP AT lt_execution_plan ASSIGNING FIELD-SYMBOL(<ls_execution_plan>).
+      APPEND INITIAL LINE TO lt_message ASSIGNING FIELD-SYMBOL(<ls_message>).
+      <ls_message>-name  = 'TOOL TO BE BUILD'.
+      <ls_message>-value = <ls_execution_plan>-tool_name.
+    ENDLOOP.
+
+    lo_short_memory->save_message( iv_agent_uuid   = ms_agent-agent_uuid
+                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   ir_message      = REF #( lt_message ) ).
+
     " create execution header
     GET TIME STAMP FIELD DATA(lv_now).
 
@@ -126,14 +161,21 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
         ms_execution_header-agent_uuid      = ms_agent-agent_uuid.
         ms_execution_header-user_id         = sy-uname.
         ms_execution_header-start_timestamp = lv_now.
-*        ms_execution_header-end_timestamp        =  .
-        ms_execution_header-run_status      = 'N'.
+        ms_execution_header-run_status      = zpru_if_agent_frw=>new.
+        ms_execution_header-created_by      = sy-uname.
+        ms_execution_header-created_at      = lv_now.
+        ms_execution_header-changed_by      = sy-uname.
+        ms_execution_header-last_changed    = lv_now.
+        ms_execution_header-local_last_changed = lv_now.
 
         DATA(lt_history) = lo_short_memory->get_history( ).
 
-        ms_execution_query-query_uuid   = cl_system_uuid=>create_uuid_x16_static( ).
-        ms_execution_query-run_uuid     = ms_execution_header-run_uuid.
-        ms_execution_query-language     = sy-langu. " where to take?
+        DELETE lt_history WHERE message_type <> zpru_if_short_memory_provider=>query.
+        SORT lt_history BY timestamp.
+
+        ms_execution_query-query_uuid = cl_system_uuid=>create_uuid_x16_static( ).
+        ms_execution_query-run_uuid   = ms_execution_header-run_uuid.
+        ms_execution_query-language   = sy-langu. " where to take?
 *        ms_execution_query-input_prompt = VALUE #( lt_history[ 1 ]- OPTIONAL ). " only user input or full first prompt?
 *ms_execution_query-output_response     =  .
 
@@ -167,7 +209,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
   METHOD zpru_if_api_agent~initialize.
     DATA lo_adf_database_access TYPE REF TO zpru_if_adf_database_access.
     DATA lo_short_memory        TYPE REF TO zpru_if_short_memory_provider.
-    DATA lt_message TYPE zpru_tt_key_value_tuple.
+    DATA lt_message             TYPE zpru_tt_key_value_tuple.
 
     IF iv_agent_name IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
@@ -209,22 +251,20 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     lo_short_memory = get_short_memory( ).
 
-    lt_message = VALUE #( ( name = 'STAGE'
+    lt_message = VALUE #( ( name  = 'STAGE'
                             value = 'INITIALIZE' )
-                          ( name = 'AGENT_NAME'
+                          ( name  = 'AGENT_NAME'
                             value = iv_agent_name ) ).
 
     LOOP AT mt_agent_tools ASSIGNING FIELD-SYMBOL(<ls_tool>).
       APPEND INITIAL LINE TO lt_message ASSIGNING FIELD-SYMBOL(<ls_message>).
-      <ls_message>-name = 'TOOL'.
+      <ls_message>-name  = 'ASSIGNED TOOL'.
       <ls_message>-value = <ls_tool>-tool_name.
     ENDLOOP.
 
-
-    lo_short_memory->save_message(
-      is_message = VALUE #( agent_uuid   = ms_agent-agent_uuid
-                            message_type = zpru_if_short_memory_provider=>info
-                            message_tuple = lt_message ) ).
+    lo_short_memory->save_message( iv_agent_uuid   = ms_agent-agent_uuid
+                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   ir_message      = REF #( lt_message ) ).
   ENDMETHOD.
 
   METHOD zpru_if_api_agent~rerun_execution.
@@ -286,16 +326,27 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
   METHOD zpru_if_api_agent~set_input_query.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
+    DATA lt_message      TYPE zpru_tt_key_value_tuple.
 
     IF iv_input_query IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
       RETURN.
     ENDIF.
 
-    lo_short_memory = get_short_memory( ).
-*    lo_short_memory->save_message( is_message   = iv_input_query ).
-
     mv_input_query = iv_input_query.
+
+    lo_short_memory = get_short_memory( ).
+
+    lt_message = VALUE #( ( name  = 'STAGE'
+                            value = 'SET_INPUT_QUERY' )
+                          ( name  = 'AGENT_NAME'
+                            value = ms_agent-agent_name )
+                          ( name  = 'INPUT_QUERY'
+                            value = mv_input_query )   ).
+
+    lo_short_memory->save_message( iv_agent_uuid   = ms_agent-agent_uuid
+                                   iv_message_type = zpru_if_short_memory_provider=>query
+                                   ir_message      = REF #( lt_message ) ).
   ENDMETHOD.
 
   METHOD get_short_memory.

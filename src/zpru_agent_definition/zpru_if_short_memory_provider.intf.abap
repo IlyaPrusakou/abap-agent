@@ -1,5 +1,5 @@
 INTERFACE zpru_if_short_memory_provider
-  PUBLIC .
+  PUBLIC.
 
   INTERFACES zpru_if_agent_frw.
 
@@ -12,23 +12,38 @@ INTERFACE zpru_if_short_memory_provider
          END OF ENUM es_message_type.
 
   TYPES: BEGIN OF ts_agent_message,
-           agent_uuid       TYPE xstring,
-           run_uuid         TYPE xstring,
-           step_uuid        TYPE xstring,
+           agent_uuid       TYPE sysuuid_x16,
+           run_uuid         TYPE sysuuid_x16,
+           step_uuid        TYPE sysuuid_x16,
            history_sequence TYPE i,
            timestamp        TYPE timestampl,
            message_type     TYPE zpru_if_short_memory_provider=>es_message_type,
            message_json     TYPE zpru_if_agent_frw=>ts_json,
-           message_tuple    TYPE zpru_tt_key_value_tuple,
          END OF ts_agent_message.
 
-  TYPES: tt_agent_message TYPE STANDARD TABLE OF ts_agent_message WITH EMPTY KEY.
+  TYPES tt_agent_message TYPE STANDARD TABLE OF ts_agent_message WITH EMPTY KEY.
 
   METHODS save_message
-    IMPORTING is_message TYPE zpru_if_short_memory_provider=>ts_agent_message.
+    IMPORTING iv_agent_uuid   TYPE sysuuid_x16                                    OPTIONAL
+              iv_run_uuid     TYPE sysuuid_x16                                    OPTIONAL
+              iv_step_uuid    TYPE sysuuid_x16                                    OPTIONAL
+              iv_message_type TYPE zpru_if_short_memory_provider=>es_message_type DEFAULT zpru_if_short_memory_provider=>info
+              ir_message      TYPE REF TO data.
+
   METHODS get_history
     RETURNING VALUE(rt_history) TYPE zpru_if_short_memory_provider=>tt_agent_message.
+
   METHODS clear_history.
 
+  METHODS convert_to_abap
+    IMPORTING
+      ir_string TYPE REF TO data
+    CHANGING
+      cr_abap   TYPE REF TO data.
+  METHODS convert_to_string
+    IMPORTING
+      ir_abap   TYPE REF TO data
+    CHANGING
+      cr_string TYPE zpru_if_agent_frw=>ts_json.
 
 ENDINTERFACE.
