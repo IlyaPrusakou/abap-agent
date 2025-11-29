@@ -9,6 +9,8 @@ define view entity ZC_PRU_AXC_QUERY
       RunUuid,
       Language,
       ExecutionStatus,
+      StartTimestamp,
+      EndTimestamp,      
       InputPrompt,
       OutputResponse,
       /* Associations */

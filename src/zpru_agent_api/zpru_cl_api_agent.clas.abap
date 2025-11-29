@@ -208,7 +208,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
         ms_execution_query-language         = COND #( WHEN lv_langu IS NOT INITIAL
                                                       THEN lv_langu
                                                       ELSE sy-langu ).
-        ms_execution_query-execution_status = zpru_if_agent_frw=>new.
+        ms_execution_query-execution_status = zpru_if_agent_frw=>cs_execution_status-new.
+        ms_execution_query-start_timestamp  = lv_now.
         ms_execution_query-input_prompt     = mv_input_query.
         ms_execution_query-decision_log     = lv_decision_log.
 
@@ -304,7 +305,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     DATA(lo_axc_database_access) = NEW zpru_cl_axc_database_access( ).
     DATA(lt_execution_header) = lo_axc_database_access->zpru_if_axc_database_access~select_head(
-                                    it_axc_head_k = VALUE #( ( run_uuid = iv_run_uuid ) ) ).
+      it_axc_head_k = VALUE #( ( run_uuid = iv_run_uuid ) ) ).
 
     ASSIGN lt_execution_header[ 1 ] TO FIELD-SYMBOL(<ls_execution_header>).
     IF sy-subrc <> 0.
@@ -320,7 +321,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ENDIF.
 
     DATA(lt_execution_query) = lo_axc_database_access->zpru_if_axc_database_access~select_query(
-                                   it_axc_query_k = VALUE #( ( query_uuid = lv_query_to_run ) ) ).
+      it_axc_query_k = VALUE #( ( query_uuid = lv_query_to_run ) ) ).
 
     ASSIGN lt_execution_query[ 1 ] TO FIELD-SYMBOL(<ls_execution_query>).
     IF sy-subrc <> 0.

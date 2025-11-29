@@ -37,6 +37,18 @@ annotate entity ZC_PRU_AXC_QUERY with
   @UI.selectionField: [ { position: 31 } ]
   ExecutionStatus;
 
+  @EndUserText.label: 'StartTimestamp'
+  @UI.identification: [ { position: 32, label: 'StartTimestamp' } ]
+  @UI.lineItem: [ { position: 32, label: 'StartTimestamp' } ]
+  @UI.selectionField: [ { position: 32 } ]
+  StartTimestamp;
+
+  @EndUserText.label: 'EndTimestamp'
+  @UI.identification: [ { position: 33, label: 'EndTimestamp' } ]
+  @UI.lineItem: [ { position: 33, label: 'EndTimestamp' } ]
+  @UI.selectionField: [ { position: 33 } ]
+  EndTimestamp;
+
   @EndUserText.label: 'InputPrompt'
   @UI.identification: [ { position: 40, label: 'InputPrompt' } ]
   @UI.lineItem: [ { position: 40, label: 'InputPrompt' } ]

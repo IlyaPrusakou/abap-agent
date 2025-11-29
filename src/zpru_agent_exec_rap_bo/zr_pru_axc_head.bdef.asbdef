@@ -71,6 +71,8 @@ authorization dependent by _executionheader
       RunUuid        = run_uuid;
       Language       = language;
       ExecutionStatus = execution_status;
+      StartTimestamp  =  start_timestamp;
+      EndTimestamp     = end_timestamp  ;
       InputPrompt    = input_prompt;
       OutputResponse = output_response;
     }

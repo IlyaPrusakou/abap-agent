@@ -75,7 +75,6 @@ CLASS zpru_cl_axc_database_access IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zpru_if_axc_database_access~select_head.
-
     IF it_axc_head_k IS INITIAL.
       RETURN.
     ENDIF.
@@ -121,6 +120,38 @@ CLASS zpru_cl_axc_database_access IMPLEMENTATION.
 
     SELECT * FROM zpru_axc_step
       WHERE step_uuid IN @lr_step
+      INTO TABLE @rt_axc_step.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_database_access~select_query_by_head.
+    DATA lt_run_uuid_r TYPE RANGE OF sysuuid_x16.
+
+    IF it_axc_head_k IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lt_run_uuid_r = VALUE #( FOR <ls_k> IN it_axc_head_k
+                             ( sign   = `I`
+                               option = `EQ`
+                               low    = <ls_k>-run_uuid ) ).
+    SELECT * FROM zpru_axc_query
+      WHERE run_uuid IN @lt_run_uuid_r
+      INTO TABLE @rt_axc_query.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_database_access~select_step_by_query.
+    DATA lt_query_uuid_r TYPE RANGE OF sysuuid_x16.
+
+    IF it_axc_query_k IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lt_query_uuid_r = VALUE #( FOR <ls_k> IN it_axc_query_k
+                               ( sign   = `I`
+                                 option = `EQ`
+                                 low    = <ls_k>-query_uuid ) ).
+    SELECT * FROM zpru_axc_step
+      WHERE run_uuid IN @lt_query_uuid_r
       INTO TABLE @rt_axc_step.
   ENDMETHOD.
 ENDCLASS.
