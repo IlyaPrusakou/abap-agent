@@ -37,7 +37,6 @@ authorization master ( global )
       UserID           = user_id;
       StartTimestamp   = start_timestamp;
       EndTimestamp     = end_timestamp;
-      RunStatus        = run_status;
       CreatedBy        = created_by;
       CreatedAt        = created_at;
       ChangedBy        = changed_by;
@@ -71,6 +70,7 @@ authorization dependent by _executionheader
       QueryUuid      = query_uuid;
       RunUuid        = run_uuid;
       Language       = language;
+      ExecutionStatus = execution_status;
       InputPrompt    = input_prompt;
       OutputResponse = output_response;
     }

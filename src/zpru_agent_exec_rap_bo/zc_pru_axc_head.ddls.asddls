@@ -17,7 +17,6 @@ define root view entity ZC_PRU_AXC_HEAD
   UserID,
   StartTimestamp,
   EndTimestamp,
-  RunStatus,
   CreatedBy,
   CreatedAt,
   ChangedBy,

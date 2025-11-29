@@ -8,6 +8,7 @@ define view entity ZC_PRU_AXC_QUERY
   key QueryUuid,
       RunUuid,
       Language,
+      ExecutionStatus,
       InputPrompt,
       OutputResponse,
       /* Associations */

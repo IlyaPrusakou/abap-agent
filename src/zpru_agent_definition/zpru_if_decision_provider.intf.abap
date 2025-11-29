@@ -18,7 +18,9 @@ INTERFACE zpru_if_decision_provider
               io_short_memory        TYPE REF TO zpru_if_short_memory_provider OPTIONAL
               io_long_memory         TYPE REF TO zpru_if_long_memory_provider OPTIONAL
               io_agent_info_provider TYPE REF TO zpru_if_agent_info_provider OPTIONAL
-    EXPORTING et_execution_plan      TYPE tt_execution_plan
-              eo_first_tool_input    TYPE REF TO zpru_if_response.
+    EXPORTING eo_execution_plan      TYPE ref to zpru_if_response
+              eo_first_tool_input    TYPE REF TO zpru_if_response
+              eo_langu               type REF TO zpru_if_response
+              eo_decision_log        type ref to zpru_if_response.
 
 ENDINTERFACE.

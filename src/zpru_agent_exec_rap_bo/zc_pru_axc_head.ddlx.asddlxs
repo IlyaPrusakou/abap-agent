@@ -43,12 +43,6 @@ annotate view ZC_PRU_AXC_HEAD with
   @UI.selectionField: [ { position: 50 } ]
   EndTimestamp;
 
-  @EndUserText.label: 'RunStatus'
-  @UI.identification: [ { position: 60, label: 'RunStatus' } ]
-  @UI.lineItem: [ { position: 60, label: 'RunStatus' } ]
-  @UI.selectionField: [ { position: 60 } ]
-  RunStatus;
-
   @UI.identification: [ { position: 70 } ]
   @UI.lineItem: [ { position: 70 } ]
   @UI.selectionField: [ { position: 70 } ]

@@ -9,6 +9,7 @@ define view entity ZR_PRU_AXC_QUERY
   key query_uuid      as QueryUuid,
       run_uuid        as RunUuid,
       language        as Language,
+      execution_status as ExecutionStatus,
       input_prompt    as InputPrompt,
       output_response as OutputResponse,
       _executionheader,
