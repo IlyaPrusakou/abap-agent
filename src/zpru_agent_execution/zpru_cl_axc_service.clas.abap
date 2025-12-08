@@ -30,6 +30,36 @@ CLASS zpru_cl_axc_service DEFINITION
       CHANGING  cs_reported    TYPE zpru_if_axc_service=>ts_reported
                 cs_failed      TYPE zpru_if_axc_service=>ts_failed.
 
+    METHODS precheck_cba_step
+      IMPORTING it_axc_step_imp TYPE zpru_if_axc_service=>tt_step_create_imp
+      EXPORTING et_entities      TYPE zpru_if_axc_service=>tt_step_create_imp
+      CHANGING  cs_reported      TYPE zpru_if_axc_service=>ts_reported
+                cs_failed        TYPE zpru_if_axc_service=>ts_failed.
+
+    METHODS precheck_rba_step
+      IMPORTING it_rba_step_k TYPE zpru_if_axc_service=>tt_rba_step_k
+      EXPORTING et_entities    TYPE zpru_if_axc_service=>tt_rba_step_k
+      CHANGING  cs_reported    TYPE zpru_if_axc_service=>ts_reported
+                cs_failed      TYPE zpru_if_axc_service=>ts_failed.
+
+    METHODS precheck_read_step
+      IMPORTING it_step_read_k TYPE zpru_if_axc_service=>tt_step_read_k
+      EXPORTING et_entities    TYPE zpru_if_axc_service=>tt_step_read_k
+      CHANGING  cs_reported    TYPE zpru_if_axc_service=>ts_reported
+                cs_failed      TYPE zpru_if_axc_service=>ts_failed.
+
+    METHODS precheck_update_step
+      IMPORTING it_step_update_imp TYPE zpru_if_axc_service=>tt_step_update_imp
+      EXPORTING et_entities       TYPE zpru_if_axc_service=>tt_step_update_imp
+      CHANGING  cs_reported       TYPE zpru_if_axc_service=>ts_reported
+                cs_failed         TYPE zpru_if_axc_service=>ts_failed.
+
+    METHODS precheck_delete_step
+      IMPORTING it_step_delete_imp TYPE zpru_if_axc_service=>tt_step_delete_imp
+      EXPORTING et_entities       TYPE zpru_if_axc_service=>tt_step_delete_imp
+      CHANGING  cs_reported       TYPE zpru_if_axc_service=>ts_reported
+                cs_failed         TYPE zpru_if_axc_service=>ts_failed.
+
     METHODS fill_head_admin_fields
       IMPORTING iv_during_create TYPE abap_boolean DEFAULT abap_false
       CHANGING  cs_header        TYPE zpru_cl_axc_buffer=>ts_header.
@@ -57,6 +87,350 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     cs_header-instance-last_changed = COND #( WHEN cs_header-instance-last_changed IS INITIAL
                                               THEN lv_now
                                               ELSE cs_header-instance-last_changed ).
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~cba_step.
+    IF it_axc_step_imp IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    precheck_cba_step( EXPORTING it_axc_step_imp = it_axc_step_imp
+                        IMPORTING et_entities      = DATA(lt_entities)
+                        CHANGING  cs_reported      = cs_reported
+                                  cs_failed        = cs_failed ).
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_step_buffer( VALUE #( FOR <ls_k>
+                                                  IN     lt_entities
+                                                  ( query_uuid = <ls_k>-query_uuid
+                                                    step_uuid  = <ls_k>-step_uuid
+                                                    full_key   = COND #( WHEN <ls_k>-step_uuid IS INITIAL
+                                                                         THEN abap_false
+                                                                         ELSE abap_true ) ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_create>).
+
+      ASSIGN zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_create>-query_uuid
+                                              instance-step_uuid  = <ls_create>-step_uuid
+                                              deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buffer>).
+
+      IF    NOT line_exists( zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_create>-query_uuid
+                                                               instance-step_uuid  = <ls_create>-step_uuid ] )
+         OR     line_exists( zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_create>-query_uuid
+                                                               instance-step_uuid  = <ls_create>-step_uuid
+                                                               deleted             = abap_true ] ).
+
+        DELETE zpru_cl_axc_buffer=>step_buffer
+               WHERE     instance-query_uuid = VALUE #( zpru_cl_axc_buffer=>step_buffer[
+                                                          instance-query_uuid = <ls_create>-query_uuid ]-instance-query_uuid OPTIONAL )
+                     AND instance-step_uuid  = VALUE #( zpru_cl_axc_buffer=>step_buffer[
+                                                          instance-query_uuid = <ls_create>-query_uuid ]-instance-step_uuid OPTIONAL )
+                     AND deleted             = abap_true.
+
+        APPEND VALUE #(
+            instance-query_uuid    = <ls_create>-query_uuid
+            instance-step_uuid     = <ls_create>-step_uuid
+            instance-run_uuid      = COND #( WHEN <ls_create>-control-run_uuid = abap_true
+                                              THEN <ls_create>-run_uuid )
+            instance-tool_uuid     = COND #( WHEN <ls_create>-control-tool_uuid = abap_true
+                                              THEN <ls_create>-tool_uuid )
+            instance-execution_seq = COND #( WHEN <ls_create>-control-execution_seq = abap_true
+                                              THEN <ls_create>-execution_seq )
+            instance-start_timestamp = COND #( WHEN <ls_create>-control-start_timestamp = abap_true
+                                                THEN <ls_create>-start_timestamp )
+            instance-end_timestamp = COND #( WHEN <ls_create>-control-end_timestamp = abap_true
+                                              THEN <ls_create>-end_timestamp )
+            instance-input_prompt  = COND #( WHEN <ls_create>-control-input_prompt = abap_true
+                                              THEN <ls_create>-input_prompt )
+            instance-output_prompt = COND #( WHEN <ls_create>-control-output_prompt = abap_true
+                                              THEN <ls_create>-output_prompt )
+            changed                = abap_true
+            deleted                = abap_false ) TO zpru_cl_axc_buffer=>step_buffer ASSIGNING FIELD-SYMBOL(<ls_just_added>).
+
+        INSERT VALUE #( query_uuid = <ls_create>-query_uuid
+                        step_uuid  = <ls_create>-step_uuid ) INTO TABLE cs_mapped-step.
+
+        APPEND VALUE #( msg       = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                    iv_number   = `001`
+                    iv_severity = zpru_if_agent_message=>sc_severity-success )
+            run_uuid  = <ls_create>-run_uuid
+            query_uuid = <ls_create>-query_uuid
+            step_uuid = <ls_create>-step_uuid ) TO cs_reported-step.
+
+      ELSE.
+
+         APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
+               query_uuid  = <ls_create>-query_uuid
+               step_uuid   = <ls_create>-step_uuid
+               create      = abap_true
+               fail        = zpru_if_agent_frw=>cs_fail_cause-unspecific )
+           TO cs_failed-step.
+
+         APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
+               query_uuid  = <ls_create>-query_uuid
+               step_uuid   = <ls_create>-step_uuid
+               create      = abap_true
+               msg         = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                   iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                   iv_number   = `002`
+                   iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+           TO cs_reported-step.
+
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~rba_step.
+    CLEAR et_axc_step.
+
+    IF it_rba_step_k IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    precheck_rba_step( EXPORTING it_rba_step_k = it_rba_step_k
+                       IMPORTING et_entities    = DATA(lt_entities)
+                       CHANGING  cs_reported    = cs_reported
+                                 cs_failed      = cs_failed ).
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_step_buffer( VALUE #( FOR <ls_k> IN lt_entities
+                                                  ( query_uuid = <ls_k>-query_uuid
+                                                    step_uuid  = ''
+                                                    full_key   = abap_false ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_h>).
+      LOOP AT zpru_cl_axc_buffer=>step_buffer ASSIGNING FIELD-SYMBOL(<ls_s_buf>)
+           WHERE instance-query_uuid = <ls_h>-query_uuid
+             AND deleted = abap_false.
+
+        DATA(ls_out) = VALUE zpru_axc_step( ).
+        ls_out-step_uuid = <ls_s_buf>-instance-step_uuid.
+        ls_out-query_uuid = <ls_s_buf>-instance-query_uuid.
+        ls_out-run_uuid = COND #( WHEN <ls_h>-control-run_uuid = abap_true
+                   THEN <ls_s_buf>-instance-run_uuid ).
+        ls_out-tool_uuid = COND #( WHEN <ls_h>-control-tool_uuid = abap_true
+                   THEN <ls_s_buf>-instance-tool_uuid ).
+        ls_out-execution_seq = COND #( WHEN <ls_h>-control-execution_seq = abap_true
+                   THEN <ls_s_buf>-instance-execution_seq ).
+        ls_out-start_timestamp = COND #( WHEN <ls_h>-control-start_timestamp = abap_true
+                  THEN <ls_s_buf>-instance-start_timestamp ).
+        ls_out-end_timestamp = COND #( WHEN <ls_h>-control-end_timestamp = abap_true
+                THEN <ls_s_buf>-instance-end_timestamp ).
+        ls_out-input_prompt = COND #( WHEN <ls_h>-control-input_prompt = abap_true
+                     THEN <ls_s_buf>-instance-input_prompt ).
+        ls_out-output_prompt = COND #( WHEN <ls_h>-control-output_prompt = abap_true
+                  THEN <ls_s_buf>-instance-output_prompt ).
+
+        APPEND ls_out TO et_axc_step.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~read_step.
+    CLEAR et_axc_step.
+
+    IF it_step_read_k IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Use precheck helper to validate inputs and populate control flags
+    precheck_read_step( EXPORTING it_step_read_k = it_step_read_k
+                        IMPORTING et_entities    = DATA(lt_entities)
+                        CHANGING  cs_reported    = cs_reported
+                                  cs_failed      = cs_failed ).
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Load exact steps into buffer
+    zpru_cl_axc_buffer=>prep_step_buffer( VALUE #( FOR <ls_k> IN lt_entities
+                                                  ( query_uuid = <ls_k>-query_uuid
+                                                    step_uuid  = <ls_k>-step_uuid
+                                                    full_key   = abap_true ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      ASSIGN zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_ent>-query_uuid
+                                              instance-step_uuid  = <ls_ent>-step_uuid
+                                              deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+      IF sy-subrc = 0.
+        DATA(ls_out) = VALUE zpru_axc_step( ).
+        ls_out-step_uuid = <ls_buf>-instance-step_uuid.
+        ls_out-query_uuid = <ls_buf>-instance-query_uuid.
+        ls_out-run_uuid = COND #( WHEN <ls_ent>-control-run_uuid = abap_true
+                                     THEN <ls_buf>-instance-run_uuid ).
+        ls_out-tool_uuid = COND #( WHEN <ls_ent>-control-tool_uuid = abap_true
+                                     THEN <ls_buf>-instance-tool_uuid ).
+        ls_out-execution_seq = COND #( WHEN <ls_ent>-control-execution_seq = abap_true
+                                           THEN <ls_buf>-instance-execution_seq ).
+        ls_out-start_timestamp = COND #( WHEN <ls_ent>-control-start_timestamp = abap_true
+                                          THEN <ls_buf>-instance-start_timestamp ).
+        ls_out-end_timestamp = COND #( WHEN <ls_ent>-control-end_timestamp = abap_true
+                                        THEN <ls_buf>-instance-end_timestamp ).
+        ls_out-input_prompt = COND #( WHEN <ls_ent>-control-input_prompt = abap_true
+                                       THEN <ls_buf>-instance-input_prompt ).
+        ls_out-output_prompt = COND #( WHEN <ls_ent>-control-output_prompt = abap_true
+                                          THEN <ls_buf>-instance-output_prompt ).
+
+        APPEND ls_out TO et_axc_step.
+      ELSE.
+        APPEND VALUE #( run_uuid   = <ls_ent>-run_uuid
+                        query_uuid = <ls_ent>-query_uuid
+                        step_uuid  = <ls_ent>-step_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_ent>-run_uuid
+                        query_uuid = <ls_ent>-query_uuid
+                        step_uuid  = <ls_ent>-step_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `003`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~update_step.
+    IF it_step_update_imp IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Precheck and populate control flags
+    precheck_update_step( EXPORTING it_step_update_imp = it_step_update_imp
+                          IMPORTING et_entities         = DATA(lt_entities)
+                          CHANGING  cs_reported         = cs_reported
+                                    cs_failed           = cs_failed ).
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_step_buffer( VALUE #( FOR <ls_k> IN lt_entities
+                                                  ( query_uuid = <ls_k>-query_uuid
+                                                    step_uuid  = <ls_k>-step_uuid
+                                                    full_key   = abap_true ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_update>).
+
+      ASSIGN zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_update>-query_uuid
+                                              instance-step_uuid  = <ls_update>-step_uuid
+                                              deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+
+      IF sy-subrc = 0.
+        <ls_buf>-instance-run_uuid = COND #( WHEN <ls_update>-control-run_uuid = abap_true
+                                            THEN <ls_update>-run_uuid
+                                            ELSE <ls_buf>-instance-run_uuid ).
+        <ls_buf>-instance-tool_uuid = COND #( WHEN <ls_update>-control-tool_uuid = abap_true
+                                              THEN <ls_update>-tool_uuid
+                                              ELSE <ls_buf>-instance-tool_uuid ).
+        <ls_buf>-instance-execution_seq = COND #( WHEN <ls_update>-control-execution_seq = abap_true
+                                                  THEN <ls_update>-execution_seq
+                                                  ELSE <ls_buf>-instance-execution_seq ).
+        <ls_buf>-instance-start_timestamp = COND #( WHEN <ls_update>-control-start_timestamp = abap_true
+                                                     THEN <ls_update>-start_timestamp
+                                                     ELSE <ls_buf>-instance-start_timestamp ).
+        <ls_buf>-instance-end_timestamp = COND #( WHEN <ls_update>-control-end_timestamp = abap_true
+                                                   THEN <ls_update>-end_timestamp
+                                                   ELSE <ls_buf>-instance-end_timestamp ).
+        <ls_buf>-instance-input_prompt = COND #( WHEN <ls_update>-control-input_prompt = abap_true
+                                                 THEN <ls_update>-input_prompt
+                                                 ELSE <ls_buf>-instance-input_prompt ).
+        <ls_buf>-instance-output_prompt = COND #( WHEN <ls_update>-control-output_prompt = abap_true
+                                                  THEN <ls_update>-output_prompt
+                                                  ELSE <ls_buf>-instance-output_prompt ).
+
+        <ls_buf>-changed = abap_true.
+        <ls_buf>-deleted = abap_false.
+
+      ELSE.
+        APPEND VALUE #( run_uuid   = <ls_update>-run_uuid
+                        query_uuid = <ls_update>-query_uuid
+                        step_uuid  = <ls_update>-step_uuid
+                        update     = abap_true
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_update>-run_uuid
+                        query_uuid = <ls_update>-query_uuid
+                        step_uuid  = <ls_update>-step_uuid
+                        update     = abap_true
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `003`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~delete_step.
+    IF it_step_delete_imp IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Precheck and populate entities
+    precheck_delete_step( EXPORTING it_step_delete_imp = it_step_delete_imp
+                          IMPORTING et_entities         = DATA(lt_entities)
+                          CHANGING  cs_reported         = cs_reported
+                                    cs_failed           = cs_failed ).
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_step_buffer( VALUE #( FOR <ls_k> IN lt_entities
+                                                  ( query_uuid = <ls_k>-query_uuid
+                                                    step_uuid  = <ls_k>-step_uuid
+                                                    full_key   = abap_true ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_delete>).
+
+      ASSIGN zpru_cl_axc_buffer=>step_buffer[ instance-query_uuid = <ls_delete>-query_uuid
+                                              instance-step_uuid  = <ls_delete>-step_uuid
+                                              deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+      IF sy-subrc = 0.
+        <ls_buf>-deleted = abap_true.
+        <ls_buf>-changed = abap_true.
+
+        INSERT VALUE #( query_uuid = <ls_delete>-query_uuid
+                        step_uuid  = <ls_delete>-step_uuid ) INTO TABLE cs_mapped-step.
+
+        APPEND VALUE #( msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                           iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                           iv_number   = `005`
+                                           iv_severity = zpru_if_agent_message=>sc_severity-success )
+                        run_uuid  = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid
+                        step_uuid = <ls_delete>-step_uuid ) TO cs_reported-step.
+
+      ELSE.
+        APPEND VALUE #( run_uuid   = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid
+                        step_uuid  = <ls_delete>-step_uuid
+                        delete     = abap_true
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid
+                        step_uuid  = <ls_delete>-step_uuid
+                        delete     = abap_true
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `003`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD zpru_if_axc_service~read_agent_execution.
@@ -208,7 +582,7 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD zpru_if_axc_service~delete.
+  METHOD zpru_if_axc_service~delete_header.
     IF it_head_delete_imp IS INITIAL.
       RETURN.
     ENDIF.
@@ -310,7 +684,207 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD zpru_if_axc_service~read.
+  METHOD zpru_if_axc_service~read_query.
+    CLEAR et_axc_query.
+
+    IF it_query_read_k IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    DATA(lt_entities) = VALUE zpru_if_axc_service=>tt_query_read_k( ).
+
+    LOOP AT it_query_read_k ASSIGNING FIELD-SYMBOL(<ls_k>).
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING iv_name = `ZPRU_IF_AXC_SERVICE=>TS_QUERY_CONTROL`
+        CHANGING  cs_data = <ls_k>
+                  cs_control = <ls_k>-control ).
+
+      IF <ls_k>-run_uuid IS INITIAL OR <ls_k>-query_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        fail     = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `007`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND <ls_k> TO lt_entities.
+    ENDLOOP.
+
+    IF lt_entities IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Load exact queries into buffer
+    zpru_cl_axc_buffer=>prep_query_buffer( VALUE #( FOR <ls_k> IN lt_entities
+                                                   ( run_uuid   = <ls_k>-run_uuid
+                                                     query_uuid = <ls_k>-query_uuid
+                                                     full_key   = abap_true ) ) ).
+
+    LOOP AT lt_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      ASSIGN zpru_cl_axc_buffer=>query_buffer[ instance-run_uuid   = <ls_ent>-run_uuid
+                                               instance-query_uuid = <ls_ent>-query_uuid
+                                               deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+      IF sy-subrc = 0.
+        DATA(ls_out) = VALUE zpru_axc_query( ).
+        ls_out-query_uuid = <ls_buf>-instance-query_uuid.
+        ls_out-run_uuid   = <ls_buf>-instance-run_uuid.
+        ls_out-language   = COND #( WHEN <ls_ent>-control-language = abap_true
+                                     THEN <ls_buf>-instance-language ).
+        ls_out-execution_status = COND #( WHEN <ls_ent>-control-execution_status = abap_true
+                                           THEN <ls_buf>-instance-execution_status ).
+        ls_out-start_timestamp = COND #( WHEN <ls_ent>-control-start_timestamp = abap_true
+                                          THEN <ls_buf>-instance-start_timestamp ).
+        ls_out-end_timestamp = COND #( WHEN <ls_ent>-control-end_timestamp = abap_true
+                                        THEN <ls_buf>-instance-end_timestamp ).
+        ls_out-input_prompt = COND #( WHEN <ls_ent>-control-input_prompt = abap_true
+                                       THEN <ls_buf>-instance-input_prompt ).
+        ls_out-decision_log = COND #( WHEN <ls_ent>-control-decision_log = abap_true
+                                       THEN <ls_buf>-instance-decision_log ).
+        ls_out-output_response = COND #( WHEN <ls_ent>-control-output_response = abap_true
+                                          THEN <ls_buf>-instance-output_response ).
+
+        APPEND ls_out TO et_axc_query.
+      ELSE.
+        APPEND VALUE #( run_uuid = <ls_ent>-run_uuid
+                        query_uuid = <ls_ent>-query_uuid
+                        fail     = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid = <ls_ent>-run_uuid
+                        query_uuid = <ls_ent>-query_uuid
+                        msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `003`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~update_query.
+    IF it_query_update_imp IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_query_buffer( VALUE #( FOR <ls_k> IN it_query_update_imp
+                                                   ( run_uuid   = <ls_k>-run_uuid
+                                                     query_uuid = <ls_k>-query_uuid
+                                                     full_key   = abap_true ) ) ).
+
+    LOOP AT it_query_update_imp ASSIGNING FIELD-SYMBOL(<ls_update>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING iv_name = `ZPRU_IF_AXC_SERVICE=>TS_QUERY_CONTROL`
+        CHANGING  cs_data = <ls_update>
+                  cs_control = <ls_update>-control ).
+
+      ASSIGN zpru_cl_axc_buffer=>query_buffer[ instance-run_uuid   = <ls_update>-run_uuid
+                                               instance-query_uuid = <ls_update>-query_uuid
+                                               deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+
+      IF sy-subrc = 0.
+        <ls_buf>-instance-language = COND #( WHEN <ls_update>-control-language = abap_true
+                                            THEN <ls_update>-language
+                                            ELSE <ls_buf>-instance-language ).
+        <ls_buf>-instance-execution_status = COND #( WHEN <ls_update>-control-execution_status = abap_true
+                                                     THEN <ls_update>-execution_status
+                                                     ELSE <ls_buf>-instance-execution_status ).
+        <ls_buf>-instance-start_timestamp = COND #( WHEN <ls_update>-control-start_timestamp = abap_true
+                                                     THEN <ls_update>-start_timestamp
+                                                     ELSE <ls_buf>-instance-start_timestamp ).
+        <ls_buf>-instance-end_timestamp = COND #( WHEN <ls_update>-control-end_timestamp = abap_true
+                                                   THEN <ls_update>-end_timestamp
+                                                   ELSE <ls_buf>-instance-end_timestamp ).
+        <ls_buf>-instance-input_prompt = COND #( WHEN <ls_update>-control-input_prompt = abap_true
+                                                 THEN <ls_update>-input_prompt
+                                                 ELSE <ls_buf>-instance-input_prompt ).
+        <ls_buf>-instance-decision_log = COND #( WHEN <ls_update>-control-decision_log = abap_true
+                                                 THEN <ls_update>-decision_log
+                                                 ELSE <ls_buf>-instance-decision_log ).
+        <ls_buf>-instance-output_response = COND #( WHEN <ls_update>-control-output_response = abap_true
+                                                    THEN <ls_update>-output_response
+                                                    ELSE <ls_buf>-instance-output_response ).
+
+        <ls_buf>-changed = abap_true.
+        <ls_buf>-deleted = abap_false.
+
+      ELSE.
+        APPEND VALUE #( run_uuid = <ls_update>-run_uuid
+                        query_uuid = <ls_update>-query_uuid
+                        update   = abap_true
+                        fail     = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid = <ls_update>-run_uuid
+                        query_uuid = <ls_update>-query_uuid
+                        update   = abap_true
+                        msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `003`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~delete_query.
+    IF it_query_delete_imp IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zpru_cl_axc_buffer=>prep_query_buffer( VALUE #( FOR <ls_k> IN it_query_delete_imp
+                                                   ( run_uuid   = <ls_k>-run_uuid
+                                                     query_uuid = <ls_k>-query_uuid
+                                                     full_key   = abap_true ) ) ).
+
+    LOOP AT it_query_delete_imp ASSIGNING FIELD-SYMBOL(<ls_delete>).
+
+      ASSIGN zpru_cl_axc_buffer=>query_buffer[ instance-run_uuid   = <ls_delete>-run_uuid
+                                               instance-query_uuid = <ls_delete>-query_uuid
+                                               deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
+      IF sy-subrc = 0.
+        <ls_buf>-deleted = abap_true.
+        <ls_buf>-changed = abap_true.
+
+        INSERT VALUE #( run_uuid = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid ) INTO TABLE cs_mapped-query.
+
+        APPEND VALUE #( msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                           iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                           iv_number   = `005`
+                                           iv_severity = zpru_if_agent_message=>sc_severity-success )
+                        run_uuid = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid ) TO cs_reported-query.
+
+      ELSE.
+        APPEND VALUE #( run_uuid = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid
+                        delete   = abap_true
+                        fail     = zpru_if_agent_frw=>cs_fail_cause-not_found )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid = <ls_delete>-run_uuid
+                        query_uuid = <ls_delete>-query_uuid
+                        delete   = abap_true
+                        msg      = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                           iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                           iv_number   = `003`
+                                           iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zpru_if_axc_service~read_header.
 
     clear et_axc_head.
 
@@ -374,10 +948,10 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
                                     iv_severity = zpru_if_agent_message=>sc_severity-error ) )
                TO ls_reported-header.
       ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
+      ENDLOOP.
+    ENDMETHOD.
 
-  METHOD zpru_if_axc_service~update.
+  METHOD zpru_if_axc_service~update_header.
 
     IF it_head_update_imp IS INITIAL.
       RETURN.
@@ -440,7 +1014,7 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD zpru_if_axc_service~create.
+  METHOD zpru_if_axc_service~create_header.
     IF it_head_create_imp IS INITIAL.
       RETURN.
     ENDIF.
@@ -673,6 +1247,297 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
 
       APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
       <ls_ent> = <ls_in>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_read_query.
+
+    CLEAR et_entities.
+
+    LOOP AT it_query_read_k ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_QUERY_CONTROL`
+        CHANGING
+          cs_data    = <ls_k>
+          cs_control = <ls_k>-control ).
+
+      IF <ls_k>-run_uuid IS INITIAL OR <ls_k>-query_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent> = <ls_k>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_update_query.
+
+    CLEAR et_entities.
+
+    LOOP AT it_query_update_imp ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_QUERY_CONTROL`
+        CHANGING
+          cs_data    = <ls_k>
+          cs_control = <ls_k>-control ).
+
+      IF <ls_k>-run_uuid IS INITIAL OR <ls_k>-query_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent> = <ls_k>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_delete_query.
+
+    CLEAR et_entities.
+
+    LOOP AT it_query_delete_imp ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      IF <ls_k>-run_uuid IS INITIAL OR <ls_k>-query_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-query.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent>-run_uuid = <ls_k>-run_uuid.
+      <ls_ent>-query_uuid = <ls_k>-query_uuid.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_cba_step.
+
+    CLEAR et_entities.
+
+    LOOP AT it_axc_step_imp ASSIGNING FIELD-SYMBOL(<ls_create>).
+      IF <ls_create>-step_uuid IS INITIAL.
+        TRY.
+            <ls_create>-step_uuid = cl_system_uuid=>create_uuid_x16_static( ).
+          CATCH cx_uuid_error.
+            RAISE SHORTDUMP NEW zpru_cx_agent_core( ).
+        ENDTRY.
+      ENDIF.
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_STEP_CONTROL`
+        CHANGING
+          cs_data    = <ls_create>
+          cs_control = <ls_create>-control ).
+
+      IF <ls_create>-query_uuid IS INITIAL.
+
+         APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
+               query_uuid  = <ls_create>-query_uuid
+               step_uuid   = <ls_create>-step_uuid
+               create      = abap_true
+               fail        = zpru_if_agent_frw=>cs_fail_cause-dependency )
+           TO cs_failed-step.
+
+         APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
+               query_uuid  = <ls_create>-query_uuid
+               step_uuid   = <ls_create>-step_uuid
+               create      = abap_true
+               msg         = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                   iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                   iv_number   = `006`
+                   iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+           TO cs_reported-step.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_entity>).
+      <ls_entity> = <ls_create>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_rba_step.
+
+    CLEAR et_entities.
+
+    LOOP AT it_rba_step_k ASSIGNING FIELD-SYMBOL(<ls_in>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_STEP_CONTROL`
+        CHANGING
+          cs_data    = <ls_in>
+          cs_control = <ls_in>-control ).
+
+      IF <ls_in>-query_uuid IS INITIAL.
+        APPEND VALUE #( query_uuid = <ls_in>-query_uuid
+                        fail      = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-query.
+
+        APPEND VALUE #( query_uuid = <ls_in>-query_uuid
+                        msg       = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                    iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                    iv_number   = `007`
+                                    iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-query.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent> = <ls_in>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_read_step.
+
+    CLEAR et_entities.
+
+    LOOP AT it_step_read_k ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_STEP_CONTROL`
+        CHANGING
+          cs_data    = <ls_k>
+          cs_control = <ls_k>-control ).
+
+      IF <ls_k>-query_uuid IS INITIAL OR <ls_k>-step_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent> = <ls_k>.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_update_step.
+
+    CLEAR et_entities.
+
+    LOOP AT it_step_update_imp ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      NEW zpru_cl_agent_util( )->zpru_if_agent_util~fill_flags(
+        EXPORTING
+          iv_name    = `ZPRU_IF_AXC_SERVICE=>TS_STEP_CONTROL`
+        CHANGING
+          cs_data    = <ls_k>
+          cs_control = <ls_k>-control ).
+
+      IF <ls_k>-query_uuid IS INITIAL OR <ls_k>-step_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent> = <ls_k>.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_delete_step.
+
+    CLEAR et_entities.
+
+    LOOP AT it_step_delete_imp ASSIGNING FIELD-SYMBOL(<ls_k>).
+
+      IF <ls_k>-query_uuid IS INITIAL OR <ls_k>-step_uuid IS INITIAL.
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
+               TO cs_failed-step.
+
+        APPEND VALUE #( run_uuid   = <ls_k>-run_uuid
+                        query_uuid = <ls_k>-query_uuid
+                        step_uuid  = <ls_k>-step_uuid
+                        msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
+                                      iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
+                                      iv_number   = `007`
+                                      iv_severity = zpru_if_agent_message=>sc_severity-error ) )
+               TO cs_reported-step.
+
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO et_entities ASSIGNING FIELD-SYMBOL(<ls_ent>).
+      <ls_ent>-query_uuid = <ls_k>-query_uuid.
+      <ls_ent>-step_uuid = <ls_k>-step_uuid.
 
     ENDLOOP.
   ENDMETHOD.

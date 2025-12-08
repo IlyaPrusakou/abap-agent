@@ -60,6 +60,29 @@ INTERFACE zpru_if_axc_service
 
   TYPES tt_query_create_imp TYPE STANDARD TABLE OF ts_query_create_imp WITH EMPTY KEY.
 
+  " Full key for query-level read/update/delete
+  TYPES: BEGIN OF ts_query_read_k,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+           control    TYPE ts_query_control,
+         END OF ts_query_read_k.
+
+  TYPES tt_query_read_k TYPE STANDARD TABLE OF ts_query_read_k WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_query_update_imp,
+           INCLUDE TYPE zpru_axc_query,
+         TYPES: control TYPE ts_query_control,
+         END OF ts_query_update_imp.
+
+  TYPES tt_query_update_imp TYPE STANDARD TABLE OF ts_query_update_imp WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_query_delete_imp,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+         END OF ts_query_delete_imp.
+
+  TYPES tt_query_delete_imp TYPE STANDARD TABLE OF ts_query_delete_imp WITH EMPTY KEY.
+
   TYPES: BEGIN OF ts_header_reported,
            run_uuid TYPE sysuuid_x16,
            msg      TYPE REF TO zpru_if_agent_message,
@@ -171,6 +194,37 @@ INTERFACE zpru_if_axc_service
         query  TYPE tt_query_reported,
         step   TYPE tt_step_reported,
       END OF ts_reported.
+ 
+  " RBA (query -> step) key and full-key types for step-level operations
+  TYPES: BEGIN OF ts_rba_step_k,
+    query_uuid TYPE sysuuid_x16,
+    control    TYPE ts_step_control,
+  END OF ts_rba_step_k.
+
+  TYPES tt_rba_step_k TYPE STANDARD TABLE OF ts_rba_step_k WITH EMPTY KEY.
+
+  " Full key for step-level read/update/delete
+  TYPES: BEGIN OF ts_step_read_k,
+    query_uuid TYPE sysuuid_x16,
+    step_uuid  TYPE sysuuid_x16,
+    control    TYPE ts_step_control,
+  END OF ts_step_read_k.
+
+  TYPES tt_step_read_k TYPE STANDARD TABLE OF ts_step_read_k WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_update_imp,
+    INCLUDE TYPE zpru_axc_step,
+    control TYPE ts_step_control,
+  END OF ts_step_update_imp.
+
+  TYPES tt_step_update_imp TYPE STANDARD TABLE OF ts_step_update_imp WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_delete_imp,
+    query_uuid TYPE sysuuid_x16,
+    step_uuid  TYPE sysuuid_x16,
+  END OF ts_step_delete_imp.
+
+  TYPES tt_step_delete_imp TYPE STANDARD TABLE OF ts_step_delete_imp WITH EMPTY KEY.
 
     TYPES: BEGIN OF ts_failed,
         header TYPE tt_header_failed,
@@ -195,31 +249,76 @@ INTERFACE zpru_if_axc_service
     IMPORTING it_axc_head_k                 TYPE zpru_if_axc_database_access=>tt_axc_head_k
     RETURNING VALUE(rt_axc_head_query_link) TYPE zpru_if_axc_database_access=>tt_axc_head_query_link.
 
-  METHODS read
+  METHODS read_header
     IMPORTING it_head_read_k TYPE tt_head_read_k
     EXPORTING  et_axc_head    TYPE zpru_if_axc_database_access=>tt_axc_head.
 
-  METHODS create
+  METHODS create_header
     IMPORTING it_head_create_imp TYPE tt_head_create_imp
     CHANGING  cs_reported        TYPE ts_reported
               cs_failed          TYPE ts_failed
               cs_mapped          TYPE ts_mapped.
 
-  METHODS update
+  METHODS update_header
     IMPORTING it_head_update_imp TYPE tt_head_update_imp
     CHANGING  cs_reported        TYPE ts_reported
               cs_failed          TYPE ts_failed.
-  METHODS delete.
+  METHODS delete_header.
   METHODS lock.
   METHODS rba_query
     IMPORTING it_rba_query_k TYPE tt_rba_query_k
     CHANGING  cs_reported    TYPE ts_reported
               cs_failed      TYPE ts_failed
     EXPORTING et_axc_query   TYPE zpru_if_axc_database_access=>tt_axc_query.
+  
+  METHODS read_query
+    IMPORTING it_query_read_k TYPE tt_query_read_k
+    CHANGING  cs_reported     TYPE ts_reported
+              cs_failed       TYPE ts_failed
+    EXPORTING et_axc_query    TYPE zpru_if_axc_database_access=>tt_axc_query.
+
+  METHODS update_query
+    IMPORTING it_query_update_imp TYPE tt_query_update_imp
+    CHANGING  cs_reported         TYPE ts_reported
+              cs_failed           TYPE ts_failed.
+
+  METHODS delete_query
+    IMPORTING it_query_delete_imp TYPE tt_query_delete_imp
+    CHANGING  cs_reported         TYPE ts_reported
+              cs_failed           TYPE ts_failed.
   METHODS cba_query
     IMPORTING it_axc_query_imp TYPE tt_query_create_imp
     CHANGING  cs_reported       TYPE ts_reported
               cs_failed         TYPE ts_failed
               cs_mapped         TYPE ts_mapped.
+
+  " Step-level symmetry: query -> step operations
+  METHODS rba_step
+    IMPORTING it_rba_step_k TYPE tt_rba_step_k
+    CHANGING  cs_reported   TYPE ts_reported
+              cs_failed     TYPE ts_failed
+    EXPORTING et_axc_step   TYPE zpru_if_axc_database_access=>tt_axc_step.
+
+  METHODS read_step
+    IMPORTING it_step_read_k TYPE tt_step_read_k
+    CHANGING  cs_reported    TYPE ts_reported
+              cs_failed      TYPE ts_failed
+    EXPORTING et_axc_step     TYPE zpru_if_axc_database_access=>tt_axc_step.
+
+  METHODS update_step
+    IMPORTING it_step_update_imp TYPE tt_step_update_imp
+    CHANGING  cs_reported        TYPE ts_reported
+              cs_failed          TYPE ts_failed.
+
+  METHODS delete_step
+    IMPORTING it_step_delete_imp TYPE tt_step_delete_imp
+    CHANGING  cs_reported        TYPE ts_reported
+              cs_failed          TYPE ts_failed.
+
+  METHODS cba_step
+    IMPORTING it_axc_step_imp TYPE tt_step_create_imp
+    CHANGING  cs_reported      TYPE ts_reported
+              cs_failed        TYPE ts_failed
+              cs_mapped        TYPE ts_mapped.
 
 ENDINTERFACE.
