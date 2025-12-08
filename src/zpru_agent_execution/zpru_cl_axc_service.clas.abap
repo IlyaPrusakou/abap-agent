@@ -99,8 +99,6 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
   METHOD db_modify.
     rv_error = abap_false.
 
-    DATA(lo_db) = NEW zpru_cl_axc_database_access( ).
-
     " Prepare tables for modify/delete operations
     DATA: lt_modify_head  TYPE TABLE OF zpru_axc_head WITH EMPTY KEY,
           lt_modify_query TYPE TABLE OF zpru_axc_query WITH EMPTY KEY,
@@ -138,8 +136,13 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     " Cascade: if headers deleted, fetch their queries and steps
     IF lt_delete_head IS NOT INITIAL.
       DATA(lt_head_keys) = VALUE #( FOR <ls> IN lt_delete_head ( run_uuid = <ls>-run_uuid ) ).
-      DATA(lt_q_from_db) = lo_db->select_query_by_head( lt_head_keys ).
-      IF lt_q_from_db IS NOT INITIAL.
+
+      SELECT * FROM zpru_axc_query
+        FOR ALL ENTRIES IN @lt_head_keys
+        WHERE run_uuid = @lt_head_keys-run_uuid
+        INTO TABLE @DATA(lt_q_from_db).
+
+      IF sy-subrc = 0.
         LOOP AT lt_q_from_db ASSIGNING FIELD-SYMBOL(<ls_qdb>).
           IF NOT line_exists( lt_delete_query[ query_uuid = <ls_qdb>-query_uuid ] ).
             APPEND <ls_qdb> TO lt_delete_query.
@@ -151,8 +154,13 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     " Cascade: if queries deleted, fetch their steps
     IF lt_delete_query IS NOT INITIAL.
       DATA(lt_query_keys) = VALUE #( FOR <ls> IN lt_delete_query ( query_uuid = <ls>-query_uuid ) ).
-      DATA(lt_s_from_db) = lo_db->select_step_by_query( lt_query_keys ).
-      IF lt_s_from_db IS NOT INITIAL.
+
+      SELECT * FROM zpru_axc_step
+        FOR ALL ENTRIES IN @lt_query_keys
+        WHERE query_uuid = @lt_query_keys-query_uuid
+        INTO TABLE @DATA(lt_s_from_db).
+
+      IF sy-subrc = 0.
         LOOP AT lt_s_from_db ASSIGNING FIELD-SYMBOL(<ls_sdb>).
           IF NOT line_exists( lt_delete_step[ step_uuid = <ls_sdb>-step_uuid ] ).
             APPEND <ls_sdb> TO lt_delete_step.
@@ -163,25 +171,22 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
 
     " Perform deletes first: steps -> queries -> headers
     IF lt_delete_step IS NOT INITIAL.
-      lo_db->delete_step( EXPORTING it_axc_step = lt_delete_step
-                          IMPORTING ev_error    = DATA(lv_step_del_err) ).
-      IF lv_step_del_err = abap_true.
+      DELETE zpru_axc_step FROM TABLE lt_delete_step.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
       ENDIF.
     ENDIF.
 
     IF rv_error = abap_false AND lt_delete_query IS NOT INITIAL.
-      lo_db->delete_query( EXPORTING it_axc_query = lt_delete_query
-                           IMPORTING ev_error     = DATA(lv_query_del_err) ).
-      IF lv_query_del_err = abap_true.
+      DELETE zpru_axc_query FROM TABLE lt_delete_query.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
       ENDIF.
     ENDIF.
 
     IF rv_error = abap_false AND lt_delete_head IS NOT INITIAL.
-      lo_db->delete_head( EXPORTING it_axc_head = lt_delete_head
-                          IMPORTING ev_error    = DATA(lv_head_del_err) ).
-      IF lv_head_del_err = abap_true.
+      DELETE zpru_axc_head FROM TABLE lt_delete_head.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
       ENDIF.
     ENDIF.
@@ -193,27 +198,24 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
 
     " Perform modifies/inserts: head -> query -> step
     IF lt_modify_head IS NOT INITIAL.
-      lo_db->modify_head( EXPORTING it_axc_head = lt_modify_head
-                          IMPORTING ev_error    = DATA(lv_head_mod_err) ).
-      IF lv_head_mod_err = abap_true.
+      MODIFY zpru_axc_head FROM TABLE lt_modify_head.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
         RETURN.
       ENDIF.
     ENDIF.
 
     IF lt_modify_query IS NOT INITIAL.
-      lo_db->modify_query( EXPORTING it_axc_query = lt_modify_query
-                           IMPORTING ev_error     = DATA(lv_query_mod_err) ).
-      IF lv_query_mod_err = abap_true.
+      MODIFY zpru_axc_query FROM TABLE lt_modify_query.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
         RETURN.
       ENDIF.
     ENDIF.
 
     IF lt_modify_step IS NOT INITIAL.
-      lo_db->modify_step( EXPORTING it_axc_step = lt_modify_step
-                          IMPORTING ev_error    = DATA(lv_step_mod_err) ).
-      IF lv_step_mod_err = abap_true.
+      MODIFY zpru_axc_step FROM TABLE lt_modify_step.
+      IF sy-subrc <> 0.
         rv_error = abap_true.
         RETURN.
       ENDIF.
