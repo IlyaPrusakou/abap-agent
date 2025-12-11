@@ -164,7 +164,7 @@ CLASS zpru_cl_adf_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zpru_if_adf_service~read_agent.
-    DATA lt_fetched_agent LIKE zpru_cl_adf_buffer=>agent_buffer.
+    DATA ls_out TYPE zpru_agent.
     CLEAR et_agent.
 
     IF it_agent_read_k IS INITIAL.
@@ -186,8 +186,36 @@ CLASS zpru_cl_adf_service IMPLEMENTATION.
       ASSIGN zpru_cl_adf_buffer=>agent_buffer[ instance-agent_uuid = <ls_read>-agent_uuid
                                                deleted             = abap_false ] TO FIELD-SYMBOL(<ls_buffer>).
       IF sy-subrc = 0.
-        APPEND INITIAL LINE TO lt_fetched_agent ASSIGNING FIELD-SYMBOL(<ls_target>).
-        <ls_target> = <ls_buffer>.
+        CLEAR ls_out.
+        ls_out-agent_uuid             = <ls_buffer>-instance-agent_uuid.
+
+        ls_out-agent_name             = COND #( WHEN <ls_read>-control-agent_name = abap_true
+                                                THEN <ls_buffer>-instance-agent_name ).
+        ls_out-decision_provider      = COND #( WHEN <ls_read>-control-decision_provider = abap_true
+                                                THEN <ls_buffer>-instance-decision_provider ).
+        ls_out-short_memory_provider  = COND #( WHEN <ls_read>-control-short_memory_provider = abap_true
+                                                THEN <ls_buffer>-instance-short_memory_provider ).
+        ls_out-long_memory_provider   = COND #( WHEN <ls_read>-control-long_memory_provider = abap_true
+                                                THEN <ls_buffer>-instance-long_memory_provider ).
+        ls_out-agent_info_provider    = COND #( WHEN <ls_read>-control-agent_info_provider = abap_true
+                                                THEN <ls_buffer>-instance-agent_info_provider ).
+        ls_out-system_prompt_provider = COND #( WHEN <ls_read>-control-system_prompt_provider = abap_true
+                                                THEN <ls_buffer>-instance-system_prompt_provider ).
+        ls_out-status                 = COND #( WHEN <ls_read>-control-status = abap_true
+                                                THEN <ls_buffer>-instance-status ).
+        ls_out-created_by             = COND #( WHEN <ls_read>-control-created_by = abap_true
+                                                THEN <ls_buffer>-instance-created_by ).
+        ls_out-created_at             = COND #( WHEN <ls_read>-control-created_at = abap_true
+                                                THEN <ls_buffer>-instance-created_at ).
+        ls_out-changed_by             = COND #( WHEN <ls_read>-control-changed_by = abap_true
+                                                THEN <ls_buffer>-instance-changed_by ).
+        ls_out-last_changed           = COND #( WHEN <ls_read>-control-last_changed = abap_true
+                                                THEN <ls_buffer>-instance-last_changed ).
+        ls_out-local_last_changed     = COND #( WHEN <ls_read>-control-local_last_changed = abap_true
+                                                THEN <ls_buffer>-instance-local_last_changed ).
+
+        APPEND ls_out TO et_agent.
+
       ELSE.
         APPEND VALUE #( agent_uuid = <ls_read>-agent_uuid
                         fail       = zpru_if_agent_frw=>cs_fail_cause-not_found )
@@ -195,7 +223,6 @@ CLASS zpru_cl_adf_service IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    et_agent = CORRESPONDING #( lt_fetched_agent MAPPING = instance ).
   ENDMETHOD.
 
   METHOD zpru_if_adf_service~update_agent.
@@ -503,7 +530,7 @@ CLASS zpru_cl_adf_service IMPLEMENTATION.
 
 
   METHOD zpru_if_adf_service~read_tool.
-    DATA lt_fetched_tool LIKE zpru_cl_adf_buffer=>tool_buffer.
+    DATA ls_out TYPE zpru_agent_tool.
     CLEAR et_tool.
 
     IF it_tool_read_k IS INITIAL.
@@ -548,7 +575,23 @@ CLASS zpru_cl_adf_service IMPLEMENTATION.
                  TO cs_failed-tool.
           CONTINUE.
         ENDIF.
-        APPEND <ls_buffer>-instance TO et_tool.
+
+        CLEAR ls_out.
+        ls_out-tool_uuid            = <ls_buffer>-instance-tool_uuid.
+        ls_out-agent_uuid           = COND #( WHEN <ls_read>-control-agent_uuid = abap_true
+                                              THEN <ls_buffer>-instance-agent_uuid ).
+        ls_out-tool_name            = COND #( WHEN <ls_read>-control-tool_name = abap_true
+                                              THEN <ls_buffer>-instance-tool_name ).
+        ls_out-tool_provider        = COND #( WHEN <ls_read>-control-tool_provider = abap_true
+                                              THEN <ls_buffer>-instance-tool_provider ).
+        ls_out-step_type            = COND #( WHEN <ls_read>-control-step_type = abap_true
+                                              THEN <ls_buffer>-instance-step_type ).
+        ls_out-input_schema_provider= COND #( WHEN <ls_read>-control-input_schema_provider = abap_true
+                                              THEN <ls_buffer>-instance-input_schema_provider ).
+        ls_out-tool_info_provider   = COND #( WHEN <ls_read>-control-tool_info_provider = abap_true
+                                              THEN <ls_buffer>-instance-tool_info_provider ).
+
+        APPEND ls_out TO et_tool.
 
       ELSE.
         APPEND VALUE #( agent_uuid = <ls_read>-agent_uuid
