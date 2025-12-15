@@ -243,6 +243,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     DATA lo_adf_service  TYPE REF TO zpru_if_adf_service.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
     DATA lt_message      TYPE zpru_tt_key_value_tuple.
+    DATA ls_reported     TYPE zpru_if_adf_type_and_constant=>ts_reported.
+    DATA ls_failed       TYPE zpru_if_adf_type_and_constant=>ts_failed.
 
     IF iv_agent_name IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
@@ -251,16 +253,45 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     mo_controller = NEW zpru_cl_agent_controller( ).
 
-    lo_adf_service = zpru_cl_adf_service=>get_instance( ).
+    lo_adf_service = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_service( ).
 
     lo_adf_service->query_agent( EXPORTING it_agent_name = VALUE #( ( sign   = `I`
                                                                       option = `EQ`
                                                                       low    = iv_agent_name ) )
                                  IMPORTING et_agent_k    = DATA(lt_agent_k) ).
 
-    lo_adf_service->read_agent( EXPORTING it_agent_k    = lt_agent_k
-                                IMPORTING et_agent      = DATA(lt_agent)
-                                          et_agent_tool = mt_agent_tools ).
+    lo_adf_service->read_agent(
+      EXPORTING it_agent_read_k = VALUE #( FOR <ls_k> IN lt_agent_k
+                                           ( agent_uuid                     = <ls_k>-agent_uuid
+                                             control-agent_uuid             = abap_true
+                                             control-agent_name             = abap_true
+                                             control-decision_provider      = abap_true
+                                             control-short_memory_provider  = abap_true
+                                             control-long_memory_provider   = abap_true
+                                             control-agent_info_provider    = abap_true
+                                             control-system_prompt_provider = abap_true
+                                             control-status                 = abap_true
+                                             control-created_by             = abap_true
+                                             control-created_at             = abap_true
+                                             control-changed_by             = abap_true
+                                             control-last_changed           = abap_true
+                                             control-local_last_changed     = abap_true ) )
+      IMPORTING et_agent        = DATA(lt_agent)
+      CHANGING  cs_reported     = ls_reported
+                cs_failed       = ls_failed ).
+
+    lo_adf_service->rba_tool( EXPORTING it_rba_tool_k = VALUE #( FOR <ls_k2> IN lt_agent_k
+                                                                 ( agent_uuid                    = <ls_k2>-agent_uuid
+                                                                   control-tool_uuid             = abap_true
+                                                                   control-agent_uuid            = abap_true
+                                                                   control-tool_name             = abap_true
+                                                                   control-tool_provider         = abap_true
+                                                                   control-step_type             = abap_true
+                                                                   control-input_schema_provider = abap_true
+                                                                   control-tool_info_provider    = abap_true    ) )
+                              IMPORTING et_tool       = mt_agent_tools
+                              CHANGING  cs_reported   = ls_reported
+                                        cs_failed     = ls_failed ).
 
     ms_agent = VALUE #( lt_agent[ 1 ] OPTIONAL ).
 
@@ -305,7 +336,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     DATA(lo_axc_database_access) = NEW zpru_cl_axc_database_access( ).
     DATA(lt_execution_header) = lo_axc_database_access->zpru_if_axc_database_access~select_head(
-      it_axc_head_k = VALUE #( ( run_uuid = iv_run_uuid ) ) ).
+                                    it_axc_head_k = VALUE #( ( run_uuid = iv_run_uuid ) ) ).
 
     ASSIGN lt_execution_header[ 1 ] TO FIELD-SYMBOL(<ls_execution_header>).
     IF sy-subrc <> 0.
@@ -315,13 +346,13 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ms_execution_header = <ls_execution_header>.
 
     IF iv_query_uuid IS INITIAL.
-*lv_query_to_run = QUERY_EXECUTION MAKE SERVICE FOR THAT QQQ
+      " lv_query_to_run = QUERY_EXECUTION MAKE SERVICE FOR THAT QQQ
     ELSE.
       lv_query_to_run = iv_query_uuid.
     ENDIF.
 
     DATA(lt_execution_query) = lo_axc_database_access->zpru_if_axc_database_access~select_query(
-      it_axc_query_k = VALUE #( ( query_uuid = lv_query_to_run ) ) ).
+                                   it_axc_query_k = VALUE #( ( query_uuid = lv_query_to_run ) ) ).
 
     ASSIGN lt_execution_query[ 1 ] TO FIELD-SYMBOL(<ls_execution_query>).
     IF sy-subrc <> 0.

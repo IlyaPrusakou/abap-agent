@@ -102,7 +102,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_create_agent(
+    lo_pre->precheck_create_agent(
       EXPORTING it_agent_create_imp = it_agent_create_imp
       IMPORTING et_entities         = et_entities
       CHANGING  cs_reported         = cs_reported
@@ -114,7 +114,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_update_agent(
+    lo_pre->precheck_update_agent(
       EXPORTING it_agent_update_imp = it_agent_update_imp
       IMPORTING et_entities         = et_entities
       CHANGING  cs_reported         = cs_reported
@@ -126,7 +126,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_delete_agent(
+    lo_pre->precheck_delete_agent(
       EXPORTING it_agent_delete_imp = it_agent_delete_imp
       IMPORTING et_entities         = et_entities
       CHANGING  cs_reported         = cs_reported
@@ -138,7 +138,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_read_agent(
+    lo_pre->precheck_read_agent(
       EXPORTING it_agent_read_k = it_agent_read_k
       IMPORTING et_entities     = et_entities
       CHANGING  cs_reported     = cs_reported
@@ -150,7 +150,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_cba_tool(
+    lo_pre->precheck_cba_tool(
       EXPORTING it_tool_create_imp = it_tool_create_imp
       IMPORTING et_entities        = et_entities
       CHANGING  cs_reported        = cs_reported
@@ -162,7 +162,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_update_tool(
+    lo_pre->precheck_update_tool(
       EXPORTING it_tool_update_imp = it_tool_update_imp
       IMPORTING et_entities        = et_entities
       CHANGING  cs_reported        = cs_reported
@@ -174,7 +174,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_delete_tool(
+    lo_pre->precheck_delete_tool(
       EXPORTING it_tool_delete_imp = it_tool_delete_imp
       IMPORTING et_entities        = et_entities
       CHANGING  cs_reported        = cs_reported
@@ -186,7 +186,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_read_tool(
+    lo_pre->precheck_read_tool(
       EXPORTING it_tool_read_k = it_tool_read_k
       IMPORTING et_entities    = et_entities
       CHANGING  cs_reported    = cs_reported
@@ -198,7 +198,7 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
     DATA lo_pre TYPE REF TO zpru_if_adf_precheck.
     lo_pre = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_precheck( ).
 
-    lo_pre->zpru_if_adf_precheck~precheck_rba_tool(
+    lo_pre->precheck_rba_tool(
       EXPORTING it_rba_tool_k = it_rba_tool_k
       IMPORTING et_entities   = et_entities
       CHANGING  cs_reported   = cs_reported
