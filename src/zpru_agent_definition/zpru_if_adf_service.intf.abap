@@ -38,69 +38,69 @@ INTERFACE zpru_if_adf_service
   METHODS read_agent
     IMPORTING it_agent_read_k TYPE zpru_if_adf_type_and_constant=>tt_agent_read_k
     EXPORTING et_agent        TYPE zpru_if_adf_database_access=>tt_agent
-    CHANGING  cs_reported     TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed       TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported     TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed       TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS create_agent
     IMPORTING it_agent_create_imp TYPE zpru_if_adf_type_and_constant=>tt_agent_create_imp
-    CHANGING  cs_reported         TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed           TYPE zpru_if_adf_type_and_constant=>ts_failed
-              cs_mapped           TYPE zpru_if_adf_type_and_constant=>ts_mapped.
+    CHANGING  cs_reported         TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed           TYPE zpru_if_agent_frw=>ts_adf_failed
+              cs_mapped           TYPE zpru_if_agent_frw=>ts_adf_mapped.
 
   METHODS update_agent
     IMPORTING it_agent_update_imp TYPE zpru_if_adf_type_and_constant=>tt_agent_update_imp
-    CHANGING  cs_reported         TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed           TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported         TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed           TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS delete_agent
     IMPORTING it_agent_delete_imp TYPE zpru_if_adf_type_and_constant=>tt_agent_delete_imp
-    CHANGING  cs_reported         TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed           TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported         TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed           TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS read_tool
     IMPORTING it_tool_read_k TYPE zpru_if_adf_type_and_constant=>tt_tool_read_k
     EXPORTING et_tool        TYPE zpru_if_adf_database_access=>tt_agent_tool
-    CHANGING  cs_reported    TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed      TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported    TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed      TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS update_tool
     IMPORTING it_tool_update_imp TYPE zpru_if_adf_type_and_constant=>tt_tool_update_imp
-    CHANGING  cs_reported        TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed          TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported        TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed          TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS delete_tool
     IMPORTING it_tool_delete_imp TYPE zpru_if_adf_type_and_constant=>tt_tool_delete_imp
-    CHANGING  cs_reported        TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed          TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported        TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed          TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS cba_tool
     IMPORTING it_tool_create_imp TYPE zpru_if_adf_type_and_constant=>tt_tool_create_imp
-    CHANGING  cs_reported        TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed          TYPE zpru_if_adf_type_and_constant=>ts_failed
-              cs_mapped          TYPE zpru_if_adf_type_and_constant=>ts_mapped.
+    CHANGING  cs_reported        TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed          TYPE zpru_if_agent_frw=>ts_adf_failed
+              cs_mapped          TYPE zpru_if_agent_frw=>ts_adf_mapped.
 
   METHODS rba_tool
     IMPORTING it_rba_tool_k TYPE zpru_if_adf_type_and_constant=>tt_rba_tool_k
     EXPORTING et_tool       TYPE zpru_if_adf_database_access=>tt_agent_tool
-    CHANGING  cs_reported   TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed     TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING  cs_reported   TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed     TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS determine
-    CHANGING cs_reported TYPE zpru_if_adf_type_and_constant=>ts_reported
-             cs_failed   TYPE zpru_if_adf_type_and_constant=>ts_failed
-             cs_mapped   TYPE zpru_if_adf_type_and_constant=>ts_mapped.
+    CHANGING cs_reported TYPE zpru_if_agent_frw=>ts_adf_reported
+             cs_failed   TYPE zpru_if_agent_frw=>ts_adf_failed
+             cs_mapped   TYPE zpru_if_agent_frw=>ts_adf_mapped.
 
   METHODS validate
-    CHANGING cs_reported TYPE zpru_if_adf_type_and_constant=>ts_reported
-             cs_failed   TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    CHANGING cs_reported TYPE zpru_if_agent_frw=>ts_adf_reported
+             cs_failed   TYPE zpru_if_agent_frw=>ts_adf_failed.
 
   METHODS clean_up
-    CHANGING cs_mapped TYPE zpru_if_adf_type_and_constant=>ts_mapped.
+    CHANGING cs_mapped TYPE zpru_if_agent_frw=>ts_adf_mapped.
 
   METHODS do_save
     IMPORTING iv_do_commit TYPE abap_boolean DEFAULT abap_true
-    CHANGING  cs_reported  TYPE zpru_if_adf_type_and_constant=>ts_reported
-              cs_failed    TYPE zpru_if_adf_type_and_constant=>ts_failed
-              cs_mapped    TYPE zpru_if_adf_type_and_constant=>ts_mapped.
+    CHANGING  cs_reported  TYPE zpru_if_agent_frw=>ts_adf_reported
+              cs_failed    TYPE zpru_if_agent_frw=>ts_adf_failed
+              cs_mapped    TYPE zpru_if_agent_frw=>ts_adf_mapped.
 
 ENDINTERFACE.

@@ -32,6 +32,180 @@ INTERFACE zpru_if_agent_frw
                equal TYPE char2 VALUE 'EQ',
              END OF cs_option.
 
+  " ADF (Agent Definition) types
+  TYPES: BEGIN OF ts_agent_reported,
+           agent_uuid TYPE sysuuid_x16,
+           msg        TYPE REF TO zpru_if_agent_message,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_agent_reported.
+
+  TYPES tt_agent_reported TYPE STANDARD TABLE OF ts_agent_reported WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_tool_reported,
+           agent_uuid TYPE sysuuid_x16,
+           tool_uuid  TYPE sysuuid_x16,
+           msg        TYPE REF TO zpru_if_agent_message,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_tool_reported.
+
+  TYPES tt_tool_reported TYPE STANDARD TABLE OF ts_tool_reported WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_agent_failed,
+           agent_uuid TYPE sysuuid_x16,
+           fail       TYPE i,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_agent_failed.
+
+  TYPES tt_agent_failed TYPE STANDARD TABLE OF ts_agent_failed WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_tool_failed,
+           agent_uuid TYPE sysuuid_x16,
+           tool_uuid  TYPE sysuuid_x16,
+           fail       TYPE i,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_tool_failed.
+
+  TYPES tt_tool_failed TYPE STANDARD TABLE OF ts_tool_failed WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_agent_mapped,
+           agent_uuid TYPE sysuuid_x16,
+         END OF ts_agent_mapped.
+
+  TYPES tt_agent_mapped TYPE STANDARD TABLE OF ts_agent_mapped WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_tool_mapped,
+           agent_uuid TYPE sysuuid_x16,
+           tool_uuid  TYPE sysuuid_x16,
+         END OF ts_tool_mapped.
+
+  TYPES tt_tool_mapped TYPE STANDARD TABLE OF ts_tool_mapped WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_adf_reported,
+           agent TYPE tt_agent_reported,
+           tool  TYPE tt_tool_reported,
+         END OF ts_adf_reported.
+
+  TYPES: BEGIN OF ts_adf_failed,
+           agent TYPE tt_agent_failed,
+           tool  TYPE tt_tool_failed,
+         END OF ts_adf_failed.
+
+  TYPES: BEGIN OF ts_adf_mapped,
+           agent TYPE tt_agent_mapped,
+           tool  TYPE tt_tool_mapped,
+         END OF ts_adf_mapped.
+
+  " AXC (Agent eXecution Context) types
+  TYPES: BEGIN OF ts_header_reported,
+           run_uuid TYPE sysuuid_x16,
+           msg      TYPE REF TO zpru_if_agent_message,
+           create   TYPE abap_boolean,
+           update   TYPE abap_boolean,
+           delete   TYPE abap_boolean,
+         END OF ts_header_reported.
+
+  TYPES tt_header_reported TYPE STANDARD TABLE OF ts_header_reported WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_query_reported,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+           msg        TYPE REF TO zpru_if_agent_message,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_query_reported.
+
+  TYPES tt_query_reported TYPE STANDARD TABLE OF ts_query_reported WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_reported,
+           query_uuid TYPE sysuuid_x16,
+           step_uuid  TYPE sysuuid_x16,
+           msg        TYPE REF TO zpru_if_agent_message,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_step_reported.
+
+  TYPES tt_step_reported TYPE STANDARD TABLE OF ts_step_reported WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_header_failed,
+           run_uuid TYPE sysuuid_x16,
+           fail     TYPE i,
+           create   TYPE abap_boolean,
+           update   TYPE abap_boolean,
+           delete   TYPE abap_boolean,
+         END OF ts_header_failed.
+
+  TYPES tt_header_failed TYPE STANDARD TABLE OF ts_header_failed WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_query_failed,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+           fail       TYPE i,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_query_failed.
+
+  TYPES tt_query_failed TYPE STANDARD TABLE OF ts_query_failed WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_failed,
+           query_uuid TYPE sysuuid_x16,
+           step_uuid  TYPE sysuuid_x16,
+           fail       TYPE i,
+           create     TYPE abap_boolean,
+           update     TYPE abap_boolean,
+           delete     TYPE abap_boolean,
+         END OF ts_step_failed.
+
+  TYPES tt_step_failed TYPE STANDARD TABLE OF ts_step_failed WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_header_mapped,
+           run_uuid TYPE sysuuid_x16,
+         END OF ts_header_mapped.
+
+  TYPES tt_header_mapped TYPE STANDARD TABLE OF ts_header_mapped WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_query_mapped,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+         END OF ts_query_mapped.
+
+  TYPES tt_query_mapped TYPE STANDARD TABLE OF ts_query_mapped WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_mapped,
+           query_uuid TYPE sysuuid_x16,
+           step_uuid  TYPE sysuuid_x16,
+         END OF ts_step_mapped.
+
+  TYPES tt_step_mapped TYPE STANDARD TABLE OF ts_step_mapped WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_axc_reported,
+           header TYPE tt_header_reported,
+           query  TYPE tt_query_reported,
+           step   TYPE tt_step_reported,
+         END OF ts_axc_reported.
+
+  TYPES: BEGIN OF ts_axc_failed,
+           header TYPE tt_header_failed,
+           query  TYPE tt_query_failed,
+           step   TYPE tt_step_failed,
+         END OF ts_axc_failed.
+
+  TYPES: BEGIN OF ts_axc_mapped,
+           header TYPE tt_header_mapped,
+           query  TYPE tt_query_mapped,
+           step   TYPE tt_step_mapped,
+         END OF ts_axc_mapped.
+
   TYPES ts_json       TYPE string.
   TYPES tt_agent_tool TYPE STANDARD TABLE OF zpru_agent_tool WITH EMPTY KEY.
 

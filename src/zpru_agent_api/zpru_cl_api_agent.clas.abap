@@ -243,8 +243,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     DATA lo_adf_service  TYPE REF TO zpru_if_adf_service.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
     DATA lt_message      TYPE zpru_tt_key_value_tuple.
-    DATA ls_reported     TYPE zpru_if_adf_type_and_constant=>ts_reported.
-    DATA ls_failed       TYPE zpru_if_adf_type_and_constant=>ts_failed.
+    DATA ls_reported     TYPE zpru_if_agent_frw=>ts_adf_reported.
+    DATA ls_failed       TYPE zpru_if_agent_frw=>ts_adf_failed.
 
     IF iv_agent_name IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
