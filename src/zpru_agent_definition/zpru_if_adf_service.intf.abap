@@ -14,8 +14,8 @@ INTERFACE zpru_if_adf_service
   TYPES tt_last_changed           TYPE RANGE OF abp_lastchange_tstmpl.
 
   TYPES: BEGIN OF ts_tool_agent_link.
-           INCLUDE TYPE zpru_if_adf_database_access=>ts_agent_k.
-           INCLUDE TYPE zpru_if_adf_database_access=>ts_agent_tool_k.
+           INCLUDE TYPE zpru_if_adf_type_and_constant=>ts_agent_k.
+           INCLUDE TYPE zpru_if_adf_type_and_constant=>ts_agent_tool_k.
   TYPES: END OF ts_tool_agent_link.
 
   TYPES tt_tool_agent_link TYPE STANDARD TABLE OF ts_tool_agent_link WITH EMPTY KEY.
@@ -32,12 +32,12 @@ INTERFACE zpru_if_adf_service
               it_created_at             TYPE tt_created_at             OPTIONAL
               it_changed_by             TYPE tt_changed_by             OPTIONAL
               it_last_changed           TYPE tt_last_changed           OPTIONAL
-    EXPORTING et_agent_k                TYPE zpru_if_adf_database_access=>tt_agent_k
+    EXPORTING et_agent_k                TYPE zpru_if_adf_type_and_constant=>tt_agent_k
               et_tool_agent_link        TYPE tt_tool_agent_link.
 
   METHODS read_agent
     IMPORTING it_agent_read_k TYPE zpru_if_adf_type_and_constant=>tt_agent_read_k
-    EXPORTING et_agent        TYPE zpru_if_adf_database_access=>tt_agent
+    EXPORTING et_agent        TYPE zpru_if_adf_type_and_constant=>tt_agent
     CHANGING  cs_reported     TYPE zpru_if_agent_frw=>ts_adf_reported
               cs_failed       TYPE zpru_if_agent_frw=>ts_adf_failed.
 
@@ -59,7 +59,7 @@ INTERFACE zpru_if_adf_service
 
   METHODS read_tool
     IMPORTING it_tool_read_k TYPE zpru_if_adf_type_and_constant=>tt_tool_read_k
-    EXPORTING et_tool        TYPE zpru_if_adf_database_access=>tt_agent_tool
+    EXPORTING et_tool        TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
     CHANGING  cs_reported    TYPE zpru_if_agent_frw=>ts_adf_reported
               cs_failed      TYPE zpru_if_agent_frw=>ts_adf_failed.
 
@@ -81,7 +81,7 @@ INTERFACE zpru_if_adf_service
 
   METHODS rba_tool
     IMPORTING it_rba_tool_k TYPE zpru_if_adf_type_and_constant=>tt_rba_tool_k
-    EXPORTING et_tool       TYPE zpru_if_adf_database_access=>tt_agent_tool
+    EXPORTING et_tool       TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
     CHANGING  cs_reported   TYPE zpru_if_agent_frw=>ts_adf_reported
               cs_failed     TYPE zpru_if_agent_frw=>ts_adf_failed.
 

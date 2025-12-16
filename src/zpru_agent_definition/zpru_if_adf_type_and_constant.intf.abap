@@ -1,5 +1,5 @@
 INTERFACE zpru_if_adf_type_and_constant
-  PUBLIC .
+  PUBLIC.
 
   TYPES: BEGIN OF ts_agent_control,
            agent_uuid             TYPE abap_boolean,
@@ -16,6 +16,24 @@ INTERFACE zpru_if_adf_type_and_constant
            last_changed           TYPE abap_boolean,
            local_last_changed     TYPE abap_boolean,
          END OF ts_agent_control.
+
+  TYPES: BEGIN OF ts_agent_k,
+           agent_uuid TYPE sysuuid_x16,
+         END OF ts_agent_k.
+
+  TYPES tt_agent_k TYPE STANDARD TABLE OF ts_agent_k WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_agent_tool_k,
+           tool_uuid TYPE sysuuid_x16,
+         END OF ts_agent_tool_k.
+
+  TYPES tt_agent_tool_k TYPE STANDARD TABLE OF ts_agent_tool_k WITH EMPTY KEY.
+
+  TYPES ts_agent        TYPE zpru_agent.
+  TYPES tt_agent        TYPE STANDARD TABLE OF ts_agent WITH EMPTY KEY.
+
+  TYPES ts_agent_tool   TYPE zpru_agent_tool.
+  TYPES tt_agent_tool   TYPE STANDARD TABLE OF ts_agent_tool WITH EMPTY KEY.
 
   TYPES: BEGIN OF ts_agent_create_imp.
            INCLUDE TYPE zpru_agent.
