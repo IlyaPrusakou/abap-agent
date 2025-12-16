@@ -108,6 +108,29 @@ INTERFACE zpru_if_axc_type_and_constant
 
   TYPES tt_step_create_imp TYPE STANDARD TABLE OF ts_step_create_imp WITH EMPTY KEY.
 
+  TYPES: BEGIN OF ts_rba_step_k,
+           query_uuid TYPE sysuuid_x16,
+           control    TYPE ts_step_control,
+         END OF ts_rba_step_k.
+
+  TYPES tt_rba_step_k TYPE STANDARD TABLE OF ts_rba_step_k WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_read_k,
+           query_uuid TYPE sysuuid_x16,
+           step_uuid  TYPE sysuuid_x16,
+           control    TYPE ts_step_control,
+         END OF ts_step_read_k.
+
+  TYPES tt_step_read_k TYPE STANDARD TABLE OF ts_step_read_k WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ts_step_update_imp.
+           INCLUDE TYPE zpru_axc_step.
+  TYPES    control TYPE ts_step_control.
+  TYPES  END OF ts_step_update_imp.
+
+  TYPES tt_step_update_imp TYPE STANDARD TABLE OF ts_step_update_imp WITH EMPTY KEY.
+
+
   TYPES: BEGIN OF ts_step_delete_imp,
            query_uuid TYPE sysuuid_x16,
            step_uuid  TYPE sysuuid_x16,

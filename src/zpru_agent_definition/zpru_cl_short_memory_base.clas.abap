@@ -25,7 +25,7 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~save_message.
     DATA ls_message TYPE zpru_if_short_memory_provider=>ts_agent_message.
 
-    IF ir_message IS BOUND.
+    IF ir_message IS not BOUND.
       RETURN.
     ENDIF.
 
