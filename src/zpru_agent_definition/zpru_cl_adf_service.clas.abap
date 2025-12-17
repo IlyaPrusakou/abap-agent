@@ -983,34 +983,34 @@ CLASS ZPRU_CL_ADF_SERVICE IMPLEMENTATION.
 
 
   METHOD apply_db_changes.
-    DATA(lo_db_access) = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_db_access( ).
-
-    " Handle Updates/Creates
-    IF it_modify_agent IS NOT INITIAL.
-      lo_db_access->modify_agent( EXPORTING it_agent = it_modify_agent
-                                  IMPORTING ev_error = DATA(lv_err_agent) ).
-      IF lv_err_agent = abap_true. rv_error = abap_true. ENDIF.
-    ENDIF.
-
-    IF it_modify_tool IS NOT INITIAL.
-      lo_db_access->modify_agent_tool( EXPORTING it_agent_tool = it_modify_tool
-                                       IMPORTING ev_error      = DATA(lv_err_tool) ).
-      IF lv_err_tool = abap_true. rv_error = abap_true. ENDIF.
-    ENDIF.
-
-
-    " Handle Deletes
-    IF it_delete_tool IS NOT INITIAL.
-       lo_db_access->delete_agent_tool( EXPORTING it_agent_tool = it_delete_tool
-                                        IMPORTING ev_error      = DATA(lv_del_err_tool) ).
-       IF lv_del_err_tool = abap_true. rv_error = abap_true. ENDIF.
-    ENDIF.
-
-    IF it_delete_agent IS NOT INITIAL.
-       lo_db_access->delete_agent( EXPORTING it_agent  = it_delete_agent
-                                   IMPORTING ev_error  = DATA(lv_del_err_agent) ).
-       IF lv_del_err_agent = abap_true. rv_error = abap_true. ENDIF.
-    ENDIF.
+*    DATA(lo_db_access) = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_db_access( ).
+*
+*    " Handle Updates/Creates
+*    IF it_modify_agent IS NOT INITIAL.
+*      lo_db_access->modify_agent( EXPORTING it_agent = it_modify_agent
+*                                  IMPORTING ev_error = DATA(lv_err_agent) ).
+*      IF lv_err_agent = abap_true. rv_error = abap_true. ENDIF.
+*    ENDIF.
+*
+*    IF it_modify_tool IS NOT INITIAL.
+*      lo_db_access->modify_agent_tool( EXPORTING it_agent_tool = it_modify_tool
+*                                       IMPORTING ev_error      = DATA(lv_err_tool) ).
+*      IF lv_err_tool = abap_true. rv_error = abap_true. ENDIF.
+*    ENDIF.
+*
+*
+*    " Handle Deletes
+*    IF it_delete_tool IS NOT INITIAL.
+*       lo_db_access->delete_agent_tool( EXPORTING it_agent_tool = it_delete_tool
+*                                        IMPORTING ev_error      = DATA(lv_del_err_tool) ).
+*       IF lv_del_err_tool = abap_true. rv_error = abap_true. ENDIF.
+*    ENDIF.
+*
+*    IF it_delete_agent IS NOT INITIAL.
+*       lo_db_access->delete_agent( EXPORTING it_agent  = it_delete_agent
+*                                   IMPORTING ev_error  = DATA(lv_del_err_agent) ).
+*       IF lv_del_err_agent = abap_true. rv_error = abap_true. ENDIF.
+*    ENDIF.
 
   ENDMETHOD.
 

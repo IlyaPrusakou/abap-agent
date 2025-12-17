@@ -133,7 +133,7 @@ ENDCLASS.
 
 
 
-CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
+CLASS zpru_cl_axc_service IMPLEMENTATION.
 
 
   METHOD fill_head_admin_fields.
@@ -654,33 +654,6 @@ CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-
-  METHOD zpru_if_axc_service~read_agent_execution.
-    DATA lo_axc_database_access TYPE REF TO zpru_if_axc_database_access.
-
-    CLEAR: et_axc_head,
-           et_axc_query,
-           et_axc_step.
-
-    IF it_axc_head_k IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    lo_axc_database_access = zpru_cl_axc_factory=>zpru_if_axc_factory~get_zpru_if_axc_db_access( ).
-
-    et_axc_head = lo_axc_database_access->select_head( it_axc_head_k ).
-
-    IF et_axc_query IS SUPPLIED.
-      et_axc_query = lo_axc_database_access->select_query_by_head( it_axc_head_k ).
-    ENDIF.
-
-    IF et_axc_step IS SUPPLIED.
-      et_axc_step = lo_axc_database_access->select_step_by_query( VALUE #( FOR <ls_q_k> IN et_axc_query
-                                                                           ( query_uuid = <ls_q_k>-query_uuid  ) ) ).
-    ENDIF.
-  ENDMETHOD.
-
-
   METHOD zpru_if_axc_service~determine.
     " Placeholder for business logic that determines what to persist.
     " Currently a no-op; callers populate buffers via CBA/UPDATE/DELETE flows.
@@ -749,14 +722,31 @@ CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
 
 
   METHOD zpru_if_axc_service~get_actual_query.
-    DATA lo_axc_database_access TYPE REF TO zpru_if_axc_database_access.
+
+    CLEAR et_axc_head_query_link.
 
     IF it_axc_head_k IS INITIAL.
       RETURN.
     ENDIF.
 
-    lo_axc_database_access = zpru_cl_axc_factory=>zpru_if_axc_factory~get_zpru_if_axc_db_access( ).
-    DATA(lt_query_candidates) = lo_axc_database_access->select_query_by_head( it_axc_head_k ).
+    zpru_if_axc_service~rba_query(
+      EXPORTING
+        it_rba_query_k = VALUE #( FOR <ls_h> IN it_axc_head_k (  run_uuid = <ls_h>-run_uuid
+                                                                 control = VALUE #(
+  run_uuid            = abap_true
+  query_uuid          = abap_true
+  language            = abap_true
+  execution_status    = abap_true
+  start_timestamp     = abap_true
+  end_timestamp       = abap_true
+  input_prompt        = abap_true
+  decision_log        = abap_true
+  output_response     = abap_true )  ) )
+      IMPORTING
+        et_axc_query   = DATA(lt_query_candidates)
+      CHANGING
+        cs_reported    = cs_reported
+        cs_failed      = cs_failed ).
 
     LOOP AT it_axc_head_k ASSIGNING FIELD-SYMBOL(<ls_axc_head_k>).
 
@@ -766,7 +756,7 @@ CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
 
       SORT lt_query_copy BY start_timestamp ASCENDING.
 
-      APPEND INITIAL LINE TO rt_axc_head_query_link ASSIGNING FIELD-SYMBOL(<ls_axc_head_query_link>).
+      APPEND INITIAL LINE TO et_axc_head_query_link ASSIGNING FIELD-SYMBOL(<ls_axc_head_query_link>).
       <ls_axc_head_query_link>-run_uuid   = <ls_axc_head_k>-run_uuid.
       <ls_axc_head_query_link>-query_uuid = VALUE #( lt_query_copy[ 1 ]-query_uuid OPTIONAL ).
 
@@ -1237,7 +1227,7 @@ CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
 
   METHOD zpru_if_axc_service~read_header.
 
-        DATA ls_out type zpru_axc_head.
+    DATA ls_out TYPE zpru_axc_head.
 
     CLEAR et_axc_head.
 
@@ -1262,7 +1252,7 @@ CLASS ZPRU_CL_AXC_SERVICE IMPLEMENTATION.
       ASSIGN zpru_cl_axc_buffer=>header_buffer[ instance-run_uuid = <ls_req>-run_uuid
                                                 deleted           = abap_false ] TO FIELD-SYMBOL(<ls_buf>).
       IF sy-subrc = 0.
-        clear ls_out.
+        CLEAR ls_out.
 
         ls_out-run_uuid           = <ls_buf>-instance-run_uuid.
         ls_out-agent_uuid         = COND #( WHEN <ls_req>-control-agent_uuid = abap_true

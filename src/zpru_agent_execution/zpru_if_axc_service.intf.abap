@@ -1,19 +1,15 @@
 INTERFACE zpru_if_axc_service
   PUBLIC.
 
-  METHODS read_agent_execution
-    IMPORTING it_axc_head_k TYPE zpru_if_axc_database_access=>tt_axc_head_k
-    EXPORTING et_axc_head   TYPE zpru_if_axc_database_access=>tt_axc_head
-              et_axc_query  TYPE zpru_if_axc_database_access=>tt_axc_query
-              et_axc_step   TYPE zpru_if_axc_database_access=>tt_axc_step.
-
   METHODS get_actual_query
-    IMPORTING it_axc_head_k                 TYPE zpru_if_axc_database_access=>tt_axc_head_k
-    RETURNING VALUE(rt_axc_head_query_link) TYPE zpru_if_axc_database_access=>tt_axc_head_query_link.
+    IMPORTING it_axc_head_k          TYPE zpru_if_axc_type_and_constant=>tt_axc_head_k
+    EXPORTING et_axc_head_query_link TYPE zpru_if_axc_type_and_constant=>tt_axc_head_query_link
+    CHANGING  cs_reported            TYPE zpru_if_agent_frw=>ts_axc_reported
+              cs_failed              TYPE zpru_if_agent_frw=>ts_axc_failed.
 
   METHODS read_header
     IMPORTING it_head_read_k TYPE zpru_if_axc_type_and_constant=>tt_head_read_k
-    EXPORTING et_axc_head    TYPE zpru_if_axc_database_access=>tt_axc_head
+    EXPORTING et_axc_head    TYPE zpru_if_axc_type_and_constant=>tt_axc_head
     CHANGING  cs_reported    TYPE zpru_if_agent_frw=>ts_axc_reported
               cs_failed      TYPE zpru_if_agent_frw=>ts_axc_failed.
 
@@ -37,13 +33,13 @@ INTERFACE zpru_if_axc_service
 
   METHODS rba_query
     IMPORTING it_rba_query_k TYPE zpru_if_axc_type_and_constant=>tt_rba_query_k
-    EXPORTING et_axc_query   TYPE zpru_if_axc_database_access=>tt_axc_query
+    EXPORTING et_axc_query   TYPE zpru_if_axc_type_and_constant=>tt_axc_query
     CHANGING  cs_reported    TYPE zpru_if_agent_frw=>ts_axc_reported
               cs_failed      TYPE zpru_if_agent_frw=>ts_axc_failed.
 
   METHODS read_query
     IMPORTING it_query_read_k TYPE zpru_if_axc_type_and_constant=>tt_query_read_k
-    EXPORTING et_axc_query    TYPE zpru_if_axc_database_access=>tt_axc_query
+    EXPORTING et_axc_query    TYPE zpru_if_axc_type_and_constant=>tt_axc_query
     CHANGING  cs_reported     TYPE zpru_if_agent_frw=>ts_axc_reported
               cs_failed       TYPE zpru_if_agent_frw=>ts_axc_failed.
 
@@ -65,13 +61,13 @@ INTERFACE zpru_if_axc_service
 
   METHODS rba_step
     IMPORTING it_rba_step_k TYPE zpru_if_axc_type_and_constant=>tt_rba_step_k
-    EXPORTING et_axc_step   TYPE zpru_if_axc_database_access=>tt_axc_step
+    EXPORTING et_axc_step   TYPE zpru_if_axc_type_and_constant=>tt_axc_step
     CHANGING  cs_reported   TYPE zpru_if_agent_frw=>ts_axc_reported
               cs_failed     TYPE zpru_if_agent_frw=>ts_axc_failed.
 
   METHODS read_step
     IMPORTING it_step_read_k TYPE zpru_if_axc_type_and_constant=>tt_step_read_k
-    EXPORTING et_axc_step    TYPE zpru_if_axc_database_access=>tt_axc_step
+    EXPORTING et_axc_step    TYPE zpru_if_axc_type_and_constant=>tt_axc_step
     CHANGING  cs_reported    TYPE zpru_if_agent_frw=>ts_axc_reported
               cs_failed      TYPE zpru_if_agent_frw=>ts_axc_failed.
 

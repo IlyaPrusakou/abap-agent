@@ -1,6 +1,35 @@
 INTERFACE zpru_if_axc_type_and_constant
   PUBLIC .
 
+  TYPES: BEGIN OF ts_axc_head_k,
+           run_uuid TYPE sysuuid_x16,
+         END OF ts_axc_head_k.
+
+  TYPES: BEGIN OF ts_axc_query_k,
+           query_uuid TYPE sysuuid_x16,
+         END OF ts_axc_query_k.
+
+  TYPES: BEGIN OF ts_axc_step_k,
+           step_uuid TYPE sysuuid_x16,
+         END OF ts_axc_step_k.
+
+  TYPES: BEGIN OF ts_axc_head_query_link,
+           run_uuid   TYPE sysuuid_x16,
+           query_uuid TYPE sysuuid_x16,
+         END OF ts_axc_head_query_link.
+
+  TYPES tt_axc_head_k          TYPE STANDARD TABLE OF ts_axc_head_k WITH EMPTY KEY.
+  TYPES tt_axc_query_k         TYPE STANDARD TABLE OF ts_axc_query_k WITH EMPTY KEY.
+  TYPES tt_axc_step_k          TYPE STANDARD TABLE OF ts_axc_step_k WITH EMPTY KEY.
+  TYPES tt_axc_head_query_link TYPE STANDARD TABLE OF ts_axc_head_query_link WITH EMPTY KEY.
+
+  TYPES tS_axc_head            TYPE zpru_axc_head .
+  TYPES tS_axc_query           TYPE zpru_axc_query.
+  TYPES tS_axc_step            TYPE zpru_axc_step .
+  TYPES tt_axc_head            TYPE STANDARD TABLE OF tS_axc_head WITH EMPTY KEY.
+  TYPES tt_axc_query           TYPE STANDARD TABLE OF tS_axc_query WITH EMPTY KEY.
+  TYPES tt_axc_step            TYPE STANDARD TABLE OF tS_axc_step WITH EMPTY KEY.
+
   TYPES: BEGIN OF ts_head_control,
            run_uuid           TYPE abap_boolean,
            agent_uuid         TYPE abap_boolean,

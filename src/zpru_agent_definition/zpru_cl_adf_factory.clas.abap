@@ -20,8 +20,4 @@ CLASS zpru_cl_adf_factory IMPLEMENTATION.
     ro_obj = NEW zpru_cl_adf_precheck( ).
   ENDMETHOD.
 
-  METHOD zpru_if_adf_factory~get_zpru_if_adf_db_access.
-    ro_obj = NEW zpru_cl_adf_database_access( ).
-  ENDMETHOD.
-
 ENDCLASS.

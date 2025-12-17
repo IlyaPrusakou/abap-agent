@@ -1,5 +1,5 @@
 CLASS zpru_cl_api_agent DEFINITION
-  PUBLIC FINAL
+  PUBLIC
   CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -9,9 +9,6 @@ CLASS zpru_cl_api_agent DEFINITION
   PROTECTED SECTION.
     DATA mo_controller   TYPE REF TO zpru_if_agent_controller.
     DATA mo_short_memory TYPE REF TO zpru_if_short_memory_provider.
-
-*    DATA ms_agent            TYPE zpru_agent.
-*    DATA mt_agent_tools      TYPE STANDARD TABLE OF zpru_agent_tool WITH EMPTY KEY.
     DATA mv_input_query  TYPE zpru_if_agent_frw=>ts_json.
 
     METHODS get_short_memory
@@ -19,6 +16,22 @@ CLASS zpru_cl_api_agent DEFINITION
       EXPORTING eo_short_memory TYPE REF TO zpru_if_short_memory_provider
       CHANGING  cs_reported     TYPE zpru_if_agent_frw=>ts_adf_reported
                 cs_failed       TYPE zpru_if_agent_frw=>ts_adf_failed
+      RAISING   zpru_cx_agent_core.
+
+    METHODS process_execution_steps
+      IMPORTING it_execution_steps TYPE zpru_if_axc_type_and_constant=>tt_axc_step
+                it_agent_tools     TYPE zpru_if_adf_type_and_constant=>tt_agent_tool.
+
+    METHODS prepare_execution
+      IMPORTING iv_run_uuid        TYPE sysuuid_x16
+                iv_query_uuid      TYPE sysuuid_x16 OPTIONAL
+      EXPORTING es_execution_query TYPE zpru_if_axc_type_and_constant=>ts_axc_query
+                et_execution_steps TYPE zpru_if_axc_type_and_constant=>tt_axc_step
+                et_agent_tools     TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
+      CHANGING  cs_axc_reported    TYPE zpru_if_agent_frw=>ts_axc_reported
+                cs_axc_failed      TYPE zpru_if_agent_frw=>ts_axc_failed
+                cs_adf_reported    TYPE zpru_if_agent_frw=>ts_adf_reported
+                cs_adf_failed      TYPE zpru_if_agent_frw=>ts_adf_failed
       RAISING   zpru_cx_agent_core.
 
 ENDCLASS.
@@ -29,7 +42,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     DATA lo_axc_service TYPE REF TO zpru_if_axc_service.
 
     lo_axc_service = zpru_cl_axc_factory=>zpru_if_axc_factory~get_zpru_if_axc_service( ).
-    lo_axc_service->do_save( EXPORTING iv_do_commit = abap_FALSE
+    lo_axc_service->do_save( EXPORTING iv_do_commit = abap_false
                              CHANGING  cs_reported  = cs_axc_reported
                                        cs_failed    = cs_axc_failed
                                        cs_mapped    = cs_axc_mapped ).
@@ -44,7 +57,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lo_axc_service->do_save( EXPORTING iv_do_commit = abap_TRUE
+    lo_axc_service->do_save( EXPORTING iv_do_commit = abap_true
                              CHANGING  cs_reported  = cs_axc_reported
                                        cs_failed    = cs_axc_failed
                                        cs_mapped    = cs_axc_mapped ).
@@ -397,7 +410,6 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     IF es_agent IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
-      RETURN.
     ENDIF.
 
     get_short_memory( EXPORTING iv_agent_uuid   = es_agent-agent_uuid
@@ -422,181 +434,116 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zpru_if_api_agent~rerun.
+    prepare_execution( EXPORTING iv_run_uuid        = iv_run_uuid
+                                 iv_query_uuid      = iv_query_uuid
+                       IMPORTING es_execution_query = DATA(ls_execution_query)
+                                 et_execution_steps = DATA(lt_execution_steps)
+                                 et_agent_tools     = DATA(lt_agent_tools)
+                       CHANGING  cs_axc_reported    = cs_axc_reported
+                                 cs_axc_failed      = cs_axc_failed
+                                 cs_adf_reported    = cs_adf_reported
+                                 cs_adf_failed      = cs_adf_failed ).
+
+    IF    lt_execution_steps IS INITIAL
+       OR lt_agent_tools     IS INITIAL
+       OR ls_execution_query IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    IF ls_execution_query-end_timestamp IS NOT INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    process_execution_steps( it_execution_steps = lt_execution_steps
+                             it_agent_tools     = lt_agent_tools ).
   ENDMETHOD.
 
   METHOD zpru_if_api_agent~rerun_from_step.
-  ENDMETHOD.
+    DATA lt_valid_steps TYPE zpru_if_axc_type_and_constant=>tt_axc_step.
 
-  METHOD zpru_if_api_agent~run.
-    DATA lo_executor         TYPE REF TO zpru_if_tool_executor.
-    DATA lo_input            TYPE REF TO zpru_if_request.
-    DATA lo_output           TYPE REF TO zpru_if_response.
-    DATA lv_query_to_run     TYPE sysuuid_x16.
-    DATA lo_axc_service      TYPE REF TO zpru_if_axc_service.
-    DATA ls_execution_header TYPE zpru_axc_head.
-    DATA ls_execution_query  TYPE zpru_axc_query.
-    DATA lt_execution_steps  TYPE STANDARD TABLE OF zpru_axc_step WITH EMPTY KEY.
-    DATA lo_adf_service      TYPE REF TO zpru_if_adf_service.
-
-    IF iv_run_uuid IS INITIAL.
+    IF iv_starting_step_uuid IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
-    lo_axc_service->read_header( EXPORTING it_head_read_k = VALUE #( ( run_uuid = iv_run_uuid
-                                                                       control  = VALUE #(
-                                                                           run_uuid           = abap_true
-                                                                           agent_uuid         = abap_true
-                                                                           user_id            = abap_true
-                                                                           start_timestamp    = abap_true
-                                                                           end_timestamp      = abap_true
-                                                                           created_by         = abap_true
-                                                                           created_at         = abap_true
-                                                                           changed_by         = abap_true
-                                                                           last_changed       = abap_true
-                                                                           local_last_changed = abap_true ) ) )
-                                 IMPORTING et_axc_head    = DATA(lt_axc_head)
-                                 CHANGING  cs_reported    = cs_axc_reported
-                                           cs_failed      = cs_axc_failed ).
+    prepare_execution( EXPORTING iv_run_uuid        = iv_run_uuid
+                                 iv_query_uuid      = iv_query_uuid
+                       IMPORTING es_execution_query = DATA(ls_execution_query)
+                                 et_execution_steps = DATA(lt_execution_steps)
+                                 et_agent_tools     = DATA(lt_agent_tools)
+                       CHANGING  cs_axc_reported    = cs_axc_reported
+                                 cs_axc_failed      = cs_axc_failed
+                                 cs_adf_reported    = cs_adf_reported
+                                 cs_adf_failed      = cs_adf_failed ).
 
-    ASSIGN lt_axc_head[ 1 ] TO FIELD-SYMBOL(<ls_execution_header>).
+    IF    lt_execution_steps IS INITIAL
+       OR lt_agent_tools     IS INITIAL
+       OR ls_execution_query IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    IF ls_execution_query-end_timestamp IS NOT INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    ASSIGN lt_execution_steps[ step_uuid = iv_starting_step_uuid ] TO FIELD-SYMBOL(<ls_step_2_start>).
     IF sy-subrc <> 0.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
-    ls_execution_header = <ls_execution_header>.
-
-    IF iv_query_uuid IS INITIAL.
-      DATA(lt_query_to_read) = lo_axc_service->get_actual_query( CORRESPONDING #( lt_axc_head ) ).
-      lv_query_to_run = VALUE #( lt_query_to_read[ 1 ]-query_uuid OPTIONAL ).
-    ELSE.
-      lv_query_to_run = iv_query_uuid.
-    ENDIF.
-
-    lo_axc_service->read_query( EXPORTING it_query_read_k = VALUE #( ( run_uuid   = ls_execution_header-run_uuid
-                                                                       query_uuid = lv_query_to_run
-                                                                       control    = VALUE #(
-                                                                           run_uuid         = abap_true
-                                                                           query_uuid       = abap_true
-                                                                           language         = abap_true
-                                                                           execution_status = abap_true
-                                                                           start_timestamp  = abap_true
-                                                                           end_timestamp    = abap_true
-                                                                           input_prompt     = abap_true
-                                                                           decision_log     = abap_true
-                                                                           output_response  = abap_true ) ) )
-                                IMPORTING et_axc_query    = DATA(lt_axc_query)
-                                CHANGING  cs_reported     = cs_axc_reported
-                                          cs_failed       = cs_axc_failed ).
-
-    ASSIGN lt_axc_query[ 1 ] TO FIELD-SYMBOL(<ls_execution_query>).
+    LOOP AT lt_execution_steps TRANSPORTING NO FIELDS
+         WHERE execution_seq < <ls_step_2_start>-execution_seq.
+      EXIT.
+    ENDLOOP.
     IF sy-subrc <> 0.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
-    ls_execution_query = <ls_execution_query>.
-
-    lo_axc_service->rba_step( EXPORTING it_rba_step_k = VALUE #( ( query_uuid = ls_execution_query-query_uuid
-                                                                   control    = VALUE #(
-                                                                       step_uuid       = abap_true
-                                                                       query_uuid      = abap_true
-                                                                       run_uuid        = abap_true
-                                                                       tool_uuid       = abap_true
-                                                                       execution_seq   = abap_true
-                                                                       start_timestamp = abap_true
-                                                                       end_timestamp   = abap_true
-                                                                       input_prompt    = abap_true
-                                                                       output_prompt   = abap_true ) ) )
-                              IMPORTING et_axc_step   = DATA(lt_axc_step)
-                              CHANGING  cs_reported   = cs_axc_reported
-                                        cs_failed     = cs_axc_failed ).
-
-    lt_execution_steps = lt_axc_step.
-
-    IF    ls_execution_header IS INITIAL
-       OR ls_execution_query  IS INITIAL
-       OR lt_execution_steps  IS INITIAL.
+    IF <ls_step_2_start>-end_timestamp IS NOT INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
-    lo_adf_service = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_service( ).
+    LOOP AT lt_execution_steps ASSIGNING FIELD-SYMBOL(<ls_step_2_exec>)
+         WHERE execution_seq >= <ls_step_2_start>-execution_seq.
+      APPEND INITIAL LINE TO lt_valid_steps ASSIGNING FIELD-SYMBOL(<ls_valid_step>).
+      <ls_valid_step> = <ls_step_2_exec>.
 
-    lo_adf_service->read_agent(
-      EXPORTING it_agent_read_k = VALUE #( ( agent_uuid                     = ls_execution_header-agent_uuid
-                                             control-agent_uuid             = abap_true
-                                             control-agent_name             = abap_true
-                                             control-decision_provider      = abap_true
-                                             control-short_memory_provider  = abap_true
-                                             control-long_memory_provider   = abap_true
-                                             control-agent_info_provider    = abap_true
-                                             control-system_prompt_provider = abap_true
-                                             control-status                 = abap_true
-                                             control-created_by             = abap_true
-                                             control-created_at             = abap_true
-                                             control-changed_by             = abap_true
-                                             control-last_changed           = abap_true
-                                             control-local_last_changed     = abap_true ) )
-      IMPORTING et_agent        = DATA(lt_agent)
-      CHANGING  cs_reported     = cs_adf_reported
-                cs_failed       = cs_adf_failed ).
+      CLEAR <ls_valid_step>-input_prompt.
+      CLEAR <ls_valid_step>-output_prompt.
 
-    DATA(ls_agent) = VALUE #( lt_agent[ 1 ] OPTIONAL ).
-    IF ls_agent IS INITIAL.
-      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
-    ENDIF.
-
-    lo_adf_service->rba_tool( EXPORTING it_rba_tool_k = VALUE #( ( agent_uuid                    = ls_agent-agent_uuid
-                                                                   control-tool_uuid             = abap_true
-                                                                   control-agent_uuid            = abap_true
-                                                                   control-tool_name             = abap_true
-                                                                   control-tool_provider         = abap_true
-                                                                   control-step_type             = abap_true
-                                                                   control-input_schema_provider = abap_true
-                                                                   control-tool_info_provider    = abap_true    ) )
-                              IMPORTING et_tool       = DATA(lt_agent_tools)
-                              CHANGING  cs_reported   = cs_adf_reported
-                                        cs_failed     = cs_adf_failed ).
-
-    LOOP AT lt_execution_steps ASSIGNING FIELD-SYMBOL(<ls_execution_step>).
-
-      DATA(lv_tabix) = sy-tabix.
-
-      ASSIGN lt_agent_tools[ tool_uuid = <ls_execution_step>-tool_uuid ] TO FIELD-SYMBOL(<ls_tool_master_data>).
-      IF sy-subrc <> 0.
-        CONTINUE.
-      ENDIF.
-
-      CREATE OBJECT lo_executor TYPE (<ls_tool_master_data>-tool_provider).
-      IF sy-subrc <> 0.
-        CONTINUE.
-      ENDIF.
-
-      IF lv_tabix = 1.
-        lo_input = NEW zpru_cl_request( ).
-        lo_input->set_data( ir_data = REF #( <ls_execution_step>-input_prompt ) ).
-        lo_output = NEW zpru_cl_response( ).
-      ELSE.
-        DATA(lr_output) = lo_output->get_data( ).
-        IF lr_output IS BOUND AND lr_output->* IS NOT INITIAL.
-          lo_input->set_data( ir_data = lo_output->get_data( ) ).
-        ELSE.
-          lo_input->clear_data( ).
-        ENDIF.
-        lo_output->clear_data( ).
-      ENDIF.
-
-      lo_executor->execute_tool( EXPORTING io_controller = mo_controller
-                                           io_request    = lo_input
-                                 IMPORTING eo_response   = lo_output ).
-
-      " SET INPUT AND OUTPUT PROMPT FOR EACH TOOL
-
-      IF mo_controller->mv_stop_agent = abap_true.
-        EXIT.
+      IF iv_new_step_prompt IS NOT INITIAL AND
+         <ls_valid_step>-step_uuid = iv_starting_step_uuid.
+        <ls_valid_step>-input_prompt = iv_new_step_prompt.
       ENDIF.
 
     ENDLOOP.
 
-    " set output prompt on query node
+    IF lt_valid_steps IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    process_execution_steps( it_execution_steps = lt_valid_steps
+                             it_agent_tools     = lt_agent_tools ).
+  ENDMETHOD.
+
+  METHOD zpru_if_api_agent~run.
+    prepare_execution( EXPORTING iv_run_uuid        = iv_run_uuid
+                                 iv_query_uuid      = iv_query_uuid
+                       IMPORTING es_execution_query = DATA(ls_execution_query)
+                                 et_execution_steps = DATA(lt_execution_steps)
+                                 et_agent_tools     = DATA(lt_agent_tools)
+                       CHANGING  cs_axc_reported    = cs_axc_reported
+                                 cs_axc_failed      = cs_axc_failed
+                                 cs_adf_reported    = cs_adf_reported
+                                 cs_adf_failed      = cs_adf_failed ).
+
+    IF    lt_execution_steps IS INITIAL
+       OR lt_agent_tools     IS INITIAL
+       OR ls_execution_query IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    process_execution_steps( it_execution_steps = lt_execution_steps
+                             it_agent_tools     = lt_agent_tools ).
   ENDMETHOD.
 
   METHOD zpru_if_api_agent~set_input_query.
@@ -670,5 +617,191 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
       CREATE OBJECT mo_short_memory TYPE (<ls_agent>-short_memory_provider).
       eo_short_memory = mo_short_memory.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD process_execution_steps.
+    DATA lo_executor TYPE REF TO zpru_if_tool_executor.
+    DATA lo_input    TYPE REF TO zpru_if_request.
+    DATA lo_output   TYPE REF TO zpru_if_response.
+
+    LOOP AT it_execution_steps ASSIGNING FIELD-SYMBOL(<ls_execution_step>).
+
+      DATA(lv_tabix) = sy-tabix.
+
+      ASSIGN it_agent_tools[ tool_uuid = <ls_execution_step>-tool_uuid ] TO FIELD-SYMBOL(<ls_tool_master_data>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      CREATE OBJECT lo_executor TYPE (<ls_tool_master_data>-tool_provider).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      IF lv_tabix = 1.
+        lo_input = NEW zpru_cl_request( ).
+        lo_input->set_data( ir_data = REF #( <ls_execution_step>-input_prompt ) ).
+        lo_output = NEW zpru_cl_response( ).
+      ELSE.
+        DATA(lr_output) = lo_output->get_data( ).
+        IF lr_output IS BOUND AND lr_output->* IS NOT INITIAL.
+          lo_input->set_data( ir_data = lo_output->get_data( ) ).
+        ELSE.
+          lo_input->clear_data( ).
+        ENDIF.
+        lo_output->clear_data( ).
+      ENDIF.
+
+      lo_executor->execute_tool( EXPORTING io_controller = mo_controller
+                                           io_request    = lo_input
+                                 IMPORTING eo_response   = lo_output ).
+
+      " SET INPUT AND OUTPUT PROMPT FOR EACH TOOL
+
+      IF mo_controller->mv_stop_agent = abap_true.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD prepare_execution.
+    " TODO: parameter ES_EXECUTION_QUERY is never cleared or assigned (ABAP cleaner)
+
+    DATA lv_query_to_run     TYPE sysuuid_x16.
+    DATA lo_axc_service      TYPE REF TO zpru_if_axc_service.
+    DATA ls_execution_header TYPE zpru_axc_head.
+    DATA ls_execution_query  TYPE zpru_axc_query.
+    DATA lo_adf_service      TYPE REF TO zpru_if_adf_service.
+
+    CLEAR: et_agent_tools,
+           et_execution_steps.
+
+    IF iv_run_uuid IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    lo_axc_service->read_header( EXPORTING it_head_read_k = VALUE #( ( run_uuid = iv_run_uuid
+                                                                       control  = VALUE #(
+                                                                           run_uuid           = abap_true
+                                                                           agent_uuid         = abap_true
+                                                                           user_id            = abap_true
+                                                                           start_timestamp    = abap_true
+                                                                           end_timestamp      = abap_true
+                                                                           created_by         = abap_true
+                                                                           created_at         = abap_true
+                                                                           changed_by         = abap_true
+                                                                           last_changed       = abap_true
+                                                                           local_last_changed = abap_true ) ) )
+                                 IMPORTING et_axc_head    = DATA(lt_axc_head)
+                                 CHANGING  cs_reported    = cs_axc_reported
+                                           cs_failed      = cs_axc_failed ).
+
+    ASSIGN lt_axc_head[ 1 ] TO FIELD-SYMBOL(<ls_execution_header>).
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    ls_execution_header = <ls_execution_header>.
+
+    IF iv_query_uuid IS INITIAL.
+
+      lo_axc_service->get_actual_query(
+        EXPORTING
+          it_axc_head_k          = CORRESPONDING #( lt_axc_head )
+        IMPORTING
+          et_axc_head_query_link = DATA(lt_query_to_read)
+        CHANGING
+          cs_reported            = cs_axc_reported
+          cs_failed              = cs_axc_failed ).
+
+    ELSE.
+      lv_query_to_run = iv_query_uuid.
+    ENDIF.
+
+    lo_axc_service->read_query( EXPORTING it_query_read_k = VALUE #( ( run_uuid   = ls_execution_header-run_uuid
+                                                                       query_uuid = lv_query_to_run
+                                                                       control    = VALUE #(
+                                                                           run_uuid         = abap_true
+                                                                           query_uuid       = abap_true
+                                                                           language         = abap_true
+                                                                           execution_status = abap_true
+                                                                           start_timestamp  = abap_true
+                                                                           end_timestamp    = abap_true
+                                                                           input_prompt     = abap_true
+                                                                           decision_log     = abap_true
+                                                                           output_response  = abap_true ) ) )
+                                IMPORTING et_axc_query    = DATA(lt_axc_query)
+                                CHANGING  cs_reported     = cs_axc_reported
+                                          cs_failed       = cs_axc_failed ).
+
+    ASSIGN lt_axc_query[ 1 ] TO FIELD-SYMBOL(<ls_execution_query>).
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    ls_execution_query = <ls_execution_query>.
+
+    lo_axc_service->rba_step( EXPORTING it_rba_step_k = VALUE #( ( query_uuid = ls_execution_query-query_uuid
+                                                                   control    = VALUE #(
+                                                                       step_uuid       = abap_true
+                                                                       query_uuid      = abap_true
+                                                                       run_uuid        = abap_true
+                                                                       tool_uuid       = abap_true
+                                                                       execution_seq   = abap_true
+                                                                       start_timestamp = abap_true
+                                                                       end_timestamp   = abap_true
+                                                                       input_prompt    = abap_true
+                                                                       output_prompt   = abap_true ) ) )
+                              IMPORTING et_axc_step   = DATA(lt_execution_steps)
+                              CHANGING  cs_reported   = cs_axc_reported
+                                        cs_failed     = cs_axc_failed ).
+
+    IF    ls_execution_header IS INITIAL
+       OR ls_execution_query  IS INITIAL
+       OR lt_execution_steps  IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    lo_adf_service = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_service( ).
+
+    lo_adf_service->read_agent(
+      EXPORTING it_agent_read_k = VALUE #( ( agent_uuid                     = ls_execution_header-agent_uuid
+                                             control-agent_uuid             = abap_true
+                                             control-agent_name             = abap_true
+                                             control-decision_provider      = abap_true
+                                             control-short_memory_provider  = abap_true
+                                             control-long_memory_provider   = abap_true
+                                             control-agent_info_provider    = abap_true
+                                             control-system_prompt_provider = abap_true
+                                             control-status                 = abap_true
+                                             control-created_by             = abap_true
+                                             control-created_at             = abap_true
+                                             control-changed_by             = abap_true
+                                             control-last_changed           = abap_true
+                                             control-local_last_changed     = abap_true ) )
+      IMPORTING et_agent        = DATA(lt_agent)
+      CHANGING  cs_reported     = cs_adf_reported
+                cs_failed       = cs_adf_failed ).
+
+    DATA(ls_agent) = VALUE #( lt_agent[ 1 ] OPTIONAL ).
+    IF ls_agent IS INITIAL.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
+    ENDIF.
+
+    lo_adf_service->rba_tool( EXPORTING it_rba_tool_k = VALUE #( ( agent_uuid                    = ls_agent-agent_uuid
+                                                                   control-tool_uuid             = abap_true
+                                                                   control-agent_uuid            = abap_true
+                                                                   control-tool_name             = abap_true
+                                                                   control-tool_provider         = abap_true
+                                                                   control-step_type             = abap_true
+                                                                   control-input_schema_provider = abap_true
+                                                                   control-tool_info_provider    = abap_true    ) )
+                              IMPORTING et_tool       = DATA(lt_agent_tools)
+                              CHANGING  cs_reported   = cs_adf_reported
+                                        cs_failed     = cs_adf_failed ).
+
+    et_agent_tools = lt_agent_tools.
+    et_execution_steps = lt_execution_steps.
   ENDMETHOD.
 ENDCLASS.

@@ -16,9 +16,4 @@ CLASS zpru_cl_axc_factory IMPLEMENTATION.
     ro_obj = NEW zpru_cl_axc_precheck( ).
   ENDMETHOD.
 
-  METHOD zpru_if_axc_factory~get_zpru_if_axc_db_access.
-    ro_obj = NEW zpru_cl_axc_database_access( ).
-  ENDMETHOD.
-
-
 ENDCLASS.
