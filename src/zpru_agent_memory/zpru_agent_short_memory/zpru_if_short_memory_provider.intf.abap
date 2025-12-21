@@ -36,17 +36,6 @@ CONSTANTS:
 
   METHODS clear_history.
 
-  METHODS convert_to_abap
-    IMPORTING
-      ir_string TYPE REF TO data
-    CHANGING
-      cr_abap   TYPE REF TO data.
-  METHODS convert_to_string
-    IMPORTING
-      ir_abap   TYPE REF TO data
-    CHANGING
-      cr_string TYPE zpru_if_agent_frw=>ts_json.
-
   METHODS set_discard_strategy
     IMPORTING
       io_discard_strategy TYPE REF TO zpru_if_discard_strategy.

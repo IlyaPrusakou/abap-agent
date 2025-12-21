@@ -28,4 +28,15 @@ INTERFACE zpru_if_agent_util
     IMPORTING iv_xstring     TYPE xstring
     RETURNING VALUE(rv_json) TYPE string.
 
+  METHODS convert_to_abap
+    IMPORTING
+      ir_string TYPE REF TO data
+    CHANGING
+      cr_abap   TYPE REF TO data.
+  METHODS convert_to_string
+    IMPORTING
+      ir_abap   TYPE REF TO data
+    CHANGING
+      cr_string TYPE zpru_if_agent_frw=>ts_json.
+
 ENDINTERFACE.

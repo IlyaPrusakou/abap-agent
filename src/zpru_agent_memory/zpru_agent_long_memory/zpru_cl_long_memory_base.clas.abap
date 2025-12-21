@@ -9,6 +9,7 @@ CLASS zpru_cl_long_memory_base DEFINITION
   PROTECTED SECTION.
     DATA mo_msg_persistence TYPE REF TO zpru_if_long_mem_persistence.
     DATA mo_sum_persistence TYPE REF TO zpru_if_long_mem_persistence.
+    DATA mo_summarize TYPE REF TO zpru_if_summarization.
 
     METHODS prepare_db_msg
       IMPORTING io_input  TYPE REF TO zpru_if_payload
@@ -83,6 +84,19 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zpru_if_long_memory_provider~summarize_conversation.
+
+    IF io_input IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    DATA(lo_summarization) = zpru_if_long_memory_provider~get_summarization( ).
+
+    lo_summarization->summarize(
+      EXPORTING
+        io_input  = io_input
+      IMPORTING
+        eo_output = eo_output ).
+
   ENDMETHOD.
 
   METHOD zpru_if_long_memory_provider~get_msg_persistence.
@@ -148,7 +162,7 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
       ENDIF.
 
       IF <ls_message_db>-message_type IS INITIAL.
-        <ls_message_db>-message_type = ZPRU_IF_SHORT_MEMORY_PROVIDER=>cs_msg_type-info.
+        <ls_message_db>-message_type = zpru_if_short_memory_provider=>cs_msg_type-info.
       ENDIF.
 
       IF <ls_message_db>-content IS NOT INITIAL.
@@ -236,5 +250,16 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
   ENDMETHOD.
 
 
+
+  METHOD zpru_if_long_memory_provider~get_summarization.
+    IF mo_summarize IS NOT BOUND.
+      mo_summarize = NEW zpru_cl_summarize_simple( ).
+    ENDIF.
+    ro_summarization = mo_summarize.
+  ENDMETHOD.
+
+  METHOD zpru_if_long_memory_provider~set_summarization.
+    mo_summarize = io_summarization.
+  ENDMETHOD.
 
 ENDCLASS.
