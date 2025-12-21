@@ -13,14 +13,14 @@ INTERFACE zpru_if_decision_provider
 
   METHODS call_decision_engine
     IMPORTING io_controller          TYPE REF TO zpru_if_agent_controller
-              io_input               TYPE REF TO zpru_if_request
+              io_input               TYPE REF TO zpru_if_payload
               io_system_prompt       TYPE REF TO zpru_if_prompt_provider OPTIONAL
               io_short_memory        TYPE REF TO zpru_if_short_memory_provider OPTIONAL
               io_long_memory         TYPE REF TO zpru_if_long_memory_provider OPTIONAL
               io_agent_info_provider TYPE REF TO zpru_if_agent_info_provider OPTIONAL
-    EXPORTING eo_execution_plan      TYPE ref to zpru_if_response
-              eo_first_tool_input    TYPE REF TO zpru_if_response
-              eo_langu               type REF TO zpru_if_response
-              eo_decision_log        type ref to zpru_if_response.
+    EXPORTING eo_execution_plan      TYPE ref to zpru_if_payload
+              eo_first_tool_input    TYPE REF TO zpru_if_payload
+              eo_langu               type REF TO zpru_if_payload
+              eo_decision_log        type ref to zpru_if_payload.
 
 ENDINTERFACE.

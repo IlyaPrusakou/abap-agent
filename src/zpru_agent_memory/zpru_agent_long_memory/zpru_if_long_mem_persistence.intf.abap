@@ -8,9 +8,9 @@ INTERFACE zpru_if_long_mem_persistence
 
   METHODS persist
     IMPORTING
-      io_input  TYPE REF TO zpru_if_request
+      io_input  TYPE REF TO zpru_if_payload
     EXPORTING
-      eo_output TYPE REF TO zpru_if_response
+      eo_output TYPE REF TO zpru_if_payload
       ev_error  TYPE abap_boolean.
 
 ENDINTERFACE.

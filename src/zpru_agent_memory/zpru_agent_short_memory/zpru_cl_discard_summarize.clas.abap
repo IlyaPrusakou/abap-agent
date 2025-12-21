@@ -32,7 +32,7 @@ CLASS zpru_cl_discard_summarize IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    io_long_memory->save_insights(
+    io_long_memory->save_summary(
       EXPORTING
         io_input  = io_input
       IMPORTING

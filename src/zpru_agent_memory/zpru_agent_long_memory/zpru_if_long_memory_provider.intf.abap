@@ -7,26 +7,26 @@ INTERFACE zpru_if_long_memory_provider
 
   METHODS save_messages
     IMPORTING
-      io_input  TYPE REF TO zpru_if_request
+      io_input  TYPE REF TO zpru_if_payload
     EXPORTING
-      eo_output TYPE REF TO zpru_if_response
+      eo_output TYPE REF TO zpru_if_payload
       ev_error  TYPE abap_boolean.
 
   METHODS save_summary
     IMPORTING
-      io_input  TYPE REF TO zpru_if_request
+      io_input  TYPE REF TO zpru_if_payload
     EXPORTING
-      eo_output TYPE REF TO zpru_if_response
+      eo_output TYPE REF TO zpru_if_payload
       ev_error  TYPE abap_boolean.
 
 
-  METHODS retrieve_insights.
+  METHODS retrieve_summary.
 
   METHODS summarize_conversation
     IMPORTING
-      io_input  TYPE REF TO zpru_if_request
+      io_input  TYPE REF TO zpru_if_payload
     EXPORTING
-      eo_output TYPE REF TO zpru_if_response
+      eo_output TYPE REF TO zpru_if_payload
       ev_error  TYPE abap_boolean.
 
   METHODS set_msg_persistence

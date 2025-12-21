@@ -27,7 +27,7 @@ CLASS zpru_cl_persistence_msg IMPLEMENTATION.
 
     lt_message = io_input->get_data( )->*.
 
-    MODIFY zpru_mem_msg FROM TABLE @lt_message.
+*    MODIFY zpru_mem_msg FROM TABLE @lt_message.
     IF sy-subrc <> 0.
       ev_error = abap_true.
     ELSE.

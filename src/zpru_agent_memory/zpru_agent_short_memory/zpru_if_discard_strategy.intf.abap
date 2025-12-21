@@ -4,8 +4,8 @@ INTERFACE zpru_if_discard_strategy
   METHODS discard
     IMPORTING
       io_long_memory       TYPE REF TO zpru_if_long_memory_provider OPTIONAL
-        io_input  TYPE REF TO zpru_if_request
+        io_input  TYPE REF TO zpru_if_payload
       EXPORTING
-        eo_output TYPE REF TO zpru_if_response.
+        eo_output TYPE REF TO zpru_if_payload.
 
 ENDINTERFACE.

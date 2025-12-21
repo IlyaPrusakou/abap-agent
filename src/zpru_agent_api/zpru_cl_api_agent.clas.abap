@@ -68,16 +68,16 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
   METHOD zpru_if_api_agent~build_execution.
     DATA lo_decision_provider      TYPE REF TO zpru_if_decision_provider.
-    DATA lo_query                  TYPE REF TO zpru_if_request.
+    DATA lo_query                  TYPE REF TO zpru_if_payload.
     DATA lt_execution_plan         TYPE zpru_if_decision_provider=>tt_execution_plan.
     DATA lo_short_memory           TYPE REF TO zpru_if_short_memory_provider.
     DATA lo_long_memory            TYPE REF TO zpru_if_long_memory_provider.
     DATA lo_agent_info_provider    TYPE REF TO zpru_if_agent_info_provider.
     DATA lo_system_prompt_provider TYPE REF TO zpru_if_prompt_provider.
-    DATA lo_first_tool_input       TYPE REF TO zpru_if_response.
-    DATA lo_execution_plan         TYPE REF TO zpru_if_response.
-    DATA lo_langu                  TYPE REF TO zpru_if_response.
-    DATA lo_decision_log           TYPE REF TO zpru_if_response.
+    DATA lo_first_tool_input       TYPE REF TO zpru_if_payload.
+    DATA lo_execution_plan         TYPE REF TO zpru_if_payload.
+    DATA lo_langu                  TYPE REF TO zpru_if_payload.
+    DATA lo_decision_log           TYPE REF TO zpru_if_payload.
     DATA lt_message_in             TYPE zpru_tt_key_value_tuple.
     DATA lv_langu                  TYPE sylangu.
     DATA lv_decision_log           TYPE zpru_if_agent_frw=>ts_json.
@@ -151,7 +151,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
       CREATE OBJECT lo_system_prompt_provider TYPE (ls_agent-system_prompt_provider).
     ENDIF.
 
-    lo_query = NEW zpru_cl_request( ).
+    lo_query = NEW zpru_cl_payload( ).
     lo_query->set_data( ir_data = NEW zpru_if_agent_frw=>ts_json( mv_input_query ) ).
 
     mo_controller->mv_agent_uuid = ls_agent-agent_uuid.
@@ -171,10 +171,10 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                                    iv_message_type = zpru_if_short_memory_provider=>info
                                    ir_message      = REF #( lt_message_in ) ).
 
-    lo_first_tool_input = NEW zpru_cl_response( ).
-    lo_execution_plan   = NEW zpru_cl_response( ).
-    lo_langu            = NEW zpru_cl_response( ).
-    lo_decision_log     = NEW zpru_cl_response( ).
+    lo_first_tool_input = NEW zpru_cl_payload( ).
+    lo_execution_plan   = NEW zpru_cl_payload( ).
+    lo_langu            = NEW zpru_cl_payload( ).
+    lo_decision_log     = NEW zpru_cl_payload( ).
 
     lo_decision_provider->call_decision_engine( EXPORTING io_controller          = mo_controller
                                                           io_input               = lo_query
@@ -640,8 +640,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
   METHOD process_execution_steps.
     DATA lo_executor         TYPE REF TO zpru_if_tool_executor.
-    DATA lo_input            TYPE REF TO zpru_if_request.
-    DATA lo_output           TYPE REF TO zpru_if_response.
+    DATA lo_input            TYPE REF TO zpru_if_payload.
+    DATA lo_output           TYPE REF TO zpru_if_payload.
     DATA lo_axc_service      TYPE REF TO zpru_if_axc_service.
     DATA lt_query_update_imp TYPE zpru_if_axc_type_and_constant=>tt_query_update_imp.
     DATA lt_step_update_imp  TYPE zpru_if_axc_type_and_constant=>tt_step_update_imp.
@@ -664,9 +664,9 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
       ENDIF.
 
       IF lv_tabix = 1.
-        lo_input = NEW zpru_cl_request( ).
+        lo_input = NEW zpru_cl_payload( ).
         lo_input->set_data( ir_data = REF #( <ls_execution_step>-input_prompt ) ).
-        lo_output = NEW zpru_cl_response( ).
+        lo_output = NEW zpru_cl_payload( ).
       ELSE.
         DATA(lr_output) = lo_output->get_data( ).
         IF lr_output IS BOUND AND lr_output->* IS NOT INITIAL.

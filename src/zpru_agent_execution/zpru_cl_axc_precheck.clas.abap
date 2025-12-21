@@ -98,14 +98,12 @@ CLASS zpru_cl_axc_precheck IMPLEMENTATION.
           cs_control = <ls_create>-control ).
 
       IF <ls_create>-run_uuid IS INITIAL.
-        APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
-                        query_uuid = <ls_create>-query_uuid
+        APPEND VALUE #( query_uuid = <ls_create>-query_uuid
                         create     = abap_true
                         fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
                TO cs_failed-query.
 
-        APPEND VALUE #( run_uuid   = <ls_create>-run_uuid
-                        query_uuid = <ls_create>-query_uuid
+        APPEND VALUE #( query_uuid = <ls_create>-query_uuid
                         create     = abap_true
                         msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
                                            iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution
@@ -172,14 +170,12 @@ CLASS zpru_cl_axc_precheck IMPLEMENTATION.
           cs_control = <ls_create>-control ).
 
       IF <ls_create>-query_uuid IS INITIAL.
-        APPEND VALUE #( query_uuid = <ls_create>-query_uuid
-                        step_uuid  = <ls_create>-step_uuid
+        APPEND VALUE #( step_uuid  = <ls_create>-step_uuid
                         create     = abap_true
                         fail       = zpru_if_agent_frw=>cs_fail_cause-dependency )
                TO cs_failed-step.
 
-        APPEND VALUE #( query_uuid = <ls_create>-query_uuid
-                        step_uuid  = <ls_create>-step_uuid
+        APPEND VALUE #( step_uuid  = <ls_create>-step_uuid
                         create     = abap_true
                         msg        = NEW zpru_cl_agent_util( )->zpru_if_agent_util~new_message(
                                            iv_id       = zpru_if_agent_frw=>cs_message_class-zpru_msg_execution

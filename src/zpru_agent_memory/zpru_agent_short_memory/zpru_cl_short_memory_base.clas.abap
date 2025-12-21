@@ -13,9 +13,9 @@ CLASS zpru_cl_short_memory_base DEFINITION
 
     METHODS discard_messages
       IMPORTING
-        io_input  TYPE REF TO zpru_if_request
+        io_input  TYPE REF TO ZPRU_IF_PAYLOAD
       EXPORTING
-        eo_output TYPE REF TO zpru_if_response.
+        eo_output TYPE REF TO ZPRU_IF_PAYLOAD.
 
   PRIVATE SECTION.
 ENDCLASS.
@@ -33,8 +33,8 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~save_message.
     DATA ls_message TYPE zpru_if_short_memory_provider=>ts_agent_message.
     DATA lt_message_2_discard LIKE mt_agent_message.
-    DATA lo_discard_input TYPE REF TO zpru_if_request.
-    DATA lo_discard_output TYPE REF TO zpru_if_response.
+    DATA lo_discard_input TYPE REF TO ZPRU_IF_PAYLOAD.
+    DATA lo_discard_output TYPE REF TO ZPRU_IF_PAYLOAD.
     DATA lv_short_memory_size TYPE i VALUE 20.
 
     IF ir_message IS NOT BOUND.
@@ -68,9 +68,9 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
       ENDLOOP.
 
       IF lt_message_2_discard IS NOT INITIAL.
-        lo_discard_input = NEW zpru_cl_request( ).
+        lo_discard_input = NEW ZPRU_CL_PAYLOAD( ).
         lo_discard_input->set_data( ir_data = REF #( lt_message_2_discard ) ).
-        lo_discard_output = NEW zpru_cl_response( ).
+        lo_discard_output = NEW ZPRU_CL_PAYLOAD( ).
 
         discard_messages(
           EXPORTING

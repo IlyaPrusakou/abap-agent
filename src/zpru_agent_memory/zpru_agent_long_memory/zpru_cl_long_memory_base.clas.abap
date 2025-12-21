@@ -12,22 +12,22 @@ CLASS zpru_cl_long_memory_base DEFINITION
 
     METHODS determine
       IMPORTING
-        io_input  TYPE REF TO zpru_if_request
+        io_input  TYPE REF TO zpru_if_payload
       EXPORTING
-        eo_output TYPE REF TO zpru_if_response.
+        eo_output TYPE REF TO zpru_if_payload.
 
     METHODS validate
       IMPORTING
-        io_input  TYPE REF TO zpru_if_request
+        io_input  TYPE REF TO zpru_if_payload
       EXPORTING
-        eo_output TYPE REF TO zpru_if_response
+        eo_output TYPE REF TO zpru_if_payload
         ev_error  TYPE abap_boolean.
 
 ENDCLASS.
 
 
 CLASS zpru_cl_long_memory_base IMPLEMENTATION.
-  METHOD zpru_if_long_memory_provider~retrieve_insights.
+  METHOD zpru_if_long_memory_provider~retrieve_summary.
   ENDMETHOD.
 
   METHOD zpru_if_long_memory_provider~retrieve_message.
@@ -57,16 +57,16 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
   METHOD zpru_if_long_memory_provider~save_messages.
 
     DATA lt_message_db TYPE zpru_if_long_mem_persistence=>tt_summarization.
-    DATA lo_determ_response TYPE REF TO zpru_if_response.
-    DATA lo_validate_request TYPE REF TO zpru_if_request.
-    DATA lo_validate_response TYPE REF TO zpru_if_response.
-    DATA lo_persist_request TYPE REF TO zpru_if_request.
+    DATA lo_determ_response TYPE REF TO zpru_if_payload.
+    DATA lo_validate_request TYPE REF TO zpru_if_payload.
+    DATA lo_validate_response TYPE REF TO zpru_if_payload.
+    DATA lo_persist_request TYPE REF TO zpru_if_payload.
 
     IF io_input IS NOT BOUND.
       RETURN.
     ENDIF.
 
-    lo_determ_response = NEW zpru_cl_response( ).
+    lo_determ_response = NEW zpru_cl_payload( ).
 
     determine(
       EXPORTING
@@ -74,7 +74,7 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
       IMPORTING
         eo_output =  lo_determ_response ).
 
-    lo_validate_request = NEW  zpru_cl_request( ).
+    lo_validate_request = NEW  zpru_cl_payload( ).
     lo_validate_request->set_data( ir_data = lo_determ_response->get_data( ) ).
 
     validate(
@@ -88,7 +88,7 @@ CLASS zpru_cl_long_memory_base IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lo_persist_request = NEW  zpru_cl_request( ).
+    lo_persist_request = NEW  zpru_cl_payload( ).
     lo_persist_request->set_data( ir_data = lo_validate_response->get_data( ) ).
 
     DATA(lo_msg_prst) = zpru_if_long_memory_provider~get_msg_persistence( ).
