@@ -5,6 +5,8 @@ INTERFACE zpru_if_api_agent
 
   TYPES tv_agent_name TYPE char100.
 
+  METHODS add_query_2_run.
+
   METHODS initialize
     IMPORTING iv_agent_name   TYPE zpru_if_api_agent=>tv_agent_name
     EXPORTING es_agent        TYPE zpru_if_adf_type_and_constant=>ts_agent
