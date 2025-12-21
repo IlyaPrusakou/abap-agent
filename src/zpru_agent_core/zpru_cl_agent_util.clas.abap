@@ -41,11 +41,6 @@ CLASS zpru_cl_agent_util IMPLEMENTATION.
     ro_obj->m_severity = iv_severity.
   ENDMETHOD.
 
-
-
-
-
-
   METHOD zpru_if_agent_util~fill_flags.
     DATA lo_abap_struct TYPE REF TO cl_abap_structdescr.
     DATA lv_flags_filled TYPE abap_boolean.
@@ -99,6 +94,36 @@ CLASS zpru_cl_agent_util IMPLEMENTATION.
       RAISE SHORTDUMP NEW zpru_cx_agent_core( ).
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD zpru_if_agent_util~deserialize_xstring_2_json.
+
+    TRY.
+        rv_json = cl_abap_conv_codepage=>create_in( )->convert( iv_xstring ).
+      CATCH     cx_parameter_invalid_range cx_sy_conversion_codepage.
+        RETURN.
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD zpru_if_agent_util~serialize_json_2_xstring.
+    TRY.
+        rv_xstring = cl_abap_conv_codepage=>create_out( )->convert( iv_json ).
+      CATCH     cx_parameter_invalid_range cx_sy_conversion_codepage.
+        RETURN.
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD zpru_if_agent_util~convert_to_abap.
+    /ui2/cl_json=>deserialize(
+      EXPORTING
+        json = ir_string->*
+      CHANGING
+        data = cr_abap->* ).
+  ENDMETHOD.
+
+  METHOD zpru_if_agent_util~convert_to_string.
+    cr_string = /ui2/cl_json=>serialize( ir_abap->* ).
   ENDMETHOD.
 
 ENDCLASS.

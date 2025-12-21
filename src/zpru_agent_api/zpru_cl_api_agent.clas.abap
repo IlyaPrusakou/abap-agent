@@ -168,7 +168,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                                value = lo_agent_info_provider->get_agent_info( ) ) ).
 
     lo_short_memory->save_message( iv_agent_uuid   = ls_agent-agent_uuid
-                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   iv_message_type = zpru_if_short_memory_provider=>cs_msg_type-info
                                    ir_message      = REF #( lt_message_in ) ).
 
     lo_first_tool_input = NEW zpru_cl_payload( ).
@@ -222,7 +222,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ENDLOOP.
 
     lo_short_memory->save_message( iv_agent_uuid   = ls_agent-agent_uuid
-                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   iv_message_type = zpru_if_short_memory_provider=>cs_msg_type-info
                                    ir_message      = REF #( lt_message_in ) ).
 
     lo_axc_service = zpru_cl_axc_factory=>zpru_if_axc_factory~get_zpru_if_axc_service( ).
@@ -433,7 +433,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ENDLOOP.
 
     lo_short_memory->save_message( iv_agent_uuid   = es_agent-agent_uuid
-                                   iv_message_type = zpru_if_short_memory_provider=>info
+                                   iv_message_type = zpru_if_short_memory_provider=>cs_msg_type-info
                                    ir_message      = REF #( lt_message ) ).
   ENDMETHOD.
 
@@ -604,7 +604,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                             value = mv_input_query )   ).
 
     lo_short_memory->save_message( iv_agent_uuid   = <ls_agent>-agent_uuid
-                                   iv_message_type = zpru_if_short_memory_provider=>query
+                                   iv_message_type = zpru_if_short_memory_provider=>cs_msg_type-query
                                    ir_message      = REF #( lt_message ) ).
   ENDMETHOD.
 

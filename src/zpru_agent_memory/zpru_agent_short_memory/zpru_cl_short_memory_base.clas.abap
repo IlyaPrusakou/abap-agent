@@ -13,9 +13,9 @@ CLASS zpru_cl_short_memory_base DEFINITION
 
     METHODS discard_messages
       IMPORTING
-        io_input  TYPE REF TO ZPRU_IF_PAYLOAD
+        io_input  TYPE REF TO zpru_if_payload
       EXPORTING
-        eo_output TYPE REF TO ZPRU_IF_PAYLOAD.
+        eo_output TYPE REF TO zpru_if_payload.
 
   PRIVATE SECTION.
 ENDCLASS.
@@ -33,15 +33,18 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~save_message.
     DATA ls_message TYPE zpru_if_short_memory_provider=>ts_agent_message.
     DATA lt_message_2_discard LIKE mt_agent_message.
-    DATA lo_discard_input TYPE REF TO ZPRU_IF_PAYLOAD.
-    DATA lo_discard_output TYPE REF TO ZPRU_IF_PAYLOAD.
+    DATA lo_discard_input TYPE REF TO zpru_if_payload.
+    DATA lo_discard_output TYPE REF TO zpru_if_payload.
     DATA lv_short_memory_size TYPE i VALUE 20.
+    DATA lo_util TYPE REF TO zpru_if_agent_util.
 
     IF ir_message IS NOT BOUND.
       RETURN.
     ENDIF.
 
-    me->zpru_if_short_memory_provider~convert_to_string(
+    lo_util = NEW zpru_cl_agent_util( ).
+
+    lo_util->convert_to_string(
       EXPORTING
         ir_abap   = ir_message
       CHANGING
@@ -53,7 +56,7 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
     ls_message-timestamp = lv_now.
 
     IF ls_message-message_type IS INITIAL.
-      ls_message-message_type = zpru_if_short_memory_provider=>info.
+      ls_message-message_type = zpru_if_short_memory_provider=>cs_msg_type-info.
     ENDIF.
 
     APPEND INITIAL LINE TO mt_agent_message ASSIGNING FIELD-SYMBOL(<ls_target>).
@@ -68,9 +71,9 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
       ENDLOOP.
 
       IF lt_message_2_discard IS NOT INITIAL.
-        lo_discard_input = NEW ZPRU_CL_PAYLOAD( ).
+        lo_discard_input = NEW zpru_cl_payload( ).
         lo_discard_input->set_data( ir_data = REF #( lt_message_2_discard ) ).
-        lo_discard_output = NEW ZPRU_CL_PAYLOAD( ).
+        lo_discard_output = NEW zpru_cl_payload( ).
 
         discard_messages(
           EXPORTING
@@ -79,18 +82,6 @@ CLASS zpru_cl_short_memory_base IMPLEMENTATION.
             eo_output = lo_discard_output ).
       ENDIF.
     ENDIF.
-  ENDMETHOD.
-
-  METHOD zpru_if_short_memory_provider~convert_to_abap.
-    /ui2/cl_json=>deserialize(
-      EXPORTING
-        json = ir_string->*
-      CHANGING
-        data = cr_abap->* ).
-  ENDMETHOD.
-
-  METHOD zpru_if_short_memory_provider~convert_to_string.
-    cr_string = /ui2/cl_json=>serialize( ir_abap->* ).
   ENDMETHOD.
 
   METHOD discard_messages.

@@ -3,13 +3,14 @@ INTERFACE zpru_if_short_memory_provider
 
   INTERFACES zpru_if_agent_frw.
 
-  TYPES: BEGIN OF ENUM es_message_type,
-           query       VALUE IS INITIAL,
-           step_input  VALUE 1,
-           step_output VALUE 2,
-           repsonse    VALUE 3,
-           info        VALUE 4,
-         END OF ENUM es_message_type.
+CONSTANTS:
+    BEGIN OF cs_msg_type,
+      query       TYPE zpru_de_message_type VALUE 'Q',
+      step_input  TYPE zpru_de_message_type VALUE 'S',
+      step_output TYPE zpru_de_message_type VALUE 'O',
+      response    TYPE zpru_de_message_type VALUE 'R',
+      info        TYPE zpru_de_message_type VALUE 'I',
+    END OF cs_msg_type.
 
   TYPES: BEGIN OF ts_agent_message,
            agent_uuid       TYPE sysuuid_x16,
@@ -17,7 +18,7 @@ INTERFACE zpru_if_short_memory_provider
            step_uuid        TYPE sysuuid_x16,
            history_sequence TYPE i,
            timestamp        TYPE timestampl,
-           message_type     TYPE zpru_if_short_memory_provider=>es_message_type,
+           message_type     TYPE zpru_de_message_type,
            message_json     TYPE zpru_if_agent_frw=>ts_json,
          END OF ts_agent_message.
 
@@ -27,24 +28,13 @@ INTERFACE zpru_if_short_memory_provider
     IMPORTING iv_agent_uuid   TYPE sysuuid_x16                                    OPTIONAL
               iv_run_uuid     TYPE sysuuid_x16                                    OPTIONAL
               iv_step_uuid    TYPE sysuuid_x16                                    OPTIONAL
-              iv_message_type TYPE zpru_if_short_memory_provider=>es_message_type DEFAULT zpru_if_short_memory_provider=>info
+              iv_message_type TYPE zpru_de_message_type DEFAULT cs_msg_type-info
               ir_message      TYPE REF TO data.
 
   METHODS get_history
     RETURNING VALUE(rt_history) TYPE zpru_if_short_memory_provider=>tt_agent_message.
 
   METHODS clear_history.
-
-  METHODS convert_to_abap
-    IMPORTING
-      ir_string TYPE REF TO data
-    CHANGING
-      cr_abap   TYPE REF TO data.
-  METHODS convert_to_string
-    IMPORTING
-      ir_abap   TYPE REF TO data
-    CHANGING
-      cr_string TYPE zpru_if_agent_frw=>ts_json.
 
   METHODS set_discard_strategy
     IMPORTING

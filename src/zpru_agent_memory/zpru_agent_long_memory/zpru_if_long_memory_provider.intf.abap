@@ -43,4 +43,12 @@ INTERFACE zpru_if_long_memory_provider
   METHODS get_sum_persistence
     RETURNING VALUE(ro_sum_persistence) TYPE REF TO zpru_if_long_mem_persistence.
 
+  METHODS set_summarization
+    IMPORTING
+      io_summarization TYPE REF TO zpru_if_summarization.
+
+  METHODS get_summarization
+    RETURNING VALUE(ro_summarization) TYPE REF TO zpru_if_summarization.
+
+
 ENDINTERFACE.
