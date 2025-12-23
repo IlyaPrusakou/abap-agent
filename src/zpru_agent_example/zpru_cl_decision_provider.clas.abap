@@ -35,4 +35,8 @@ CLASS zpru_cl_decision_provider IMPLEMENTATION.
 *    ENDCASE.
 
   ENDMETHOD.
+  METHOD zpru_if_decision_provider~prepare_final_response.
+
+  ENDMETHOD.
+
 ENDCLASS.

@@ -1,6 +1,18 @@
 INTERFACE zpru_if_adf_type_and_constant
   PUBLIC.
 
+  CONSTANTS: BEGIN OF cs_agent_status,
+               new      TYPE zpru_de_adf_agent_status VALUE 'N',
+               active   TYPE zpru_de_adf_agent_status VALUE 'A',
+               inactive TYPE zpru_de_adf_agent_status VALUE 'I',
+             END OF cs_agent_status.
+
+  CONSTANTS: BEGIN OF cs_step_type,
+               simple_code      TYPE zpru_de_adf_step_type VALUE 'S', " Simple Code
+               knowledge_source TYPE zpru_de_adf_step_type VALUE 'K', " Knowledge Source
+               nested_agent     TYPE zpru_de_adf_step_type VALUE 'A', " Nested Agent
+             END OF cs_step_type.
+
   TYPES: BEGIN OF ts_agent_control,
            agent_uuid             TYPE abap_boolean,
            agent_name             TYPE abap_boolean,
