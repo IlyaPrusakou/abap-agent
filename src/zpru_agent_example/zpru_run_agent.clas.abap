@@ -14,7 +14,24 @@ ENDCLASS.
 CLASS zpru_run_agent IMPLEMENTATION.
   METHOD if_oo_adt_classrun~main.
 
-" test
+    DATA(lo_global) = NEW zpru_cl_dummy_agent_logic( ).
+
+    DATA(lo_local) = lo_global->get_local( ).
+
+    lo_local->execute_tool(
+      EXPORTING
+        io_controller = NEW zpru_cl_agent_controller( )
+        io_request    = NEW zpru_cl_payload( )
+*      IMPORTING
+*        eo_response   =
+*        ev_error_flag =
+    ).
+
+
+
+
+
+    " test
 **    DELETE FROM zpru_axc_head.
 **    DELETE FROM zpru_axc_query.
 **    DELETE FROM zpru_axc_step.

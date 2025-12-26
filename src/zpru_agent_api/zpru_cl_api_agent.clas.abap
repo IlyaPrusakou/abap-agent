@@ -20,7 +20,7 @@ CLASS zpru_cl_api_agent DEFINITION
 
     METHODS process_execution_steps
       IMPORTING is_agent            TYPE zpru_if_adf_type_and_constant=>ts_agent
-                Is_execution_header TYPE zpru_axc_head
+                is_execution_header TYPE zpru_axc_head
                 is_execution_query  TYPE zpru_if_axc_type_and_constant=>ts_axc_query
                 it_execution_steps  TYPE zpru_if_axc_type_and_constant=>tt_axc_step
                 it_agent_tools      TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
@@ -790,6 +790,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_execution_steps.
+    DATA lo_tool_provider     TYPE REF TO zpru_if_tool_provider.
     DATA lo_executor          TYPE REF TO zpru_if_tool_executor.
     DATA lo_input             TYPE REF TO zpru_if_payload.
     DATA lo_output            TYPE REF TO zpru_if_payload.
@@ -818,10 +819,13 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      CREATE OBJECT lo_executor TYPE (<ls_tool_master_data>-tool_provider).
+      CREATE OBJECT lo_tool_provider TYPE (<ls_tool_master_data>-tool_provider).
       IF sy-subrc <> 0.
         CONTINUE.
       ENDIF.
+
+      lo_executor = lo_tool_provider->get_tool( is_tool_master_data = <ls_tool_master_data>
+                                                is_execution_step   = <ls_execution_step> ).
 
       IF lv_count = 1.
         lo_input = NEW zpru_cl_payload( ).
@@ -875,7 +879,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
           step_uuid    = <ls_execution_step>-step_uuid
           message_time = lv_now
           content      = |\{ "RUN_ID" : "{ is_execution_header-run_id }", | &&
-                         | "QUERY_NUMBER" : "{ Is_execution_query-query_number }", | &&
+                         | "QUERY_NUMBER" : "{ is_execution_query-query_number }", | &&
                          | "STEP_NUMBER" : "{ <ls_execution_step>-step_number }", | &&
                          | "EXECUTION_SEQ" : "{ <ls_execution_step>-execution_seq }", | &&
                          | "TOOL_NAME" : "{ <ls_tool_master_data>-tool_name }", | &&
