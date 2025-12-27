@@ -1547,6 +1547,12 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     DATA lv_run_id_base TYPE i.
     DATA lv_run_id_base_char TYPE zpru_de_run_id.
 
+    IF iv_run_id_base IS NOT INITIAL.
+      lv_run_id_base_char = CONV #( iv_run_id_base ).
+      rv_run_id = |{ lv_run_id_base_char ALPHA = IN }|.
+      RETURN.
+    ENDIF.
+
     SELECT SINGLE MAX( run_id )
       FROM zpru_axc_head
       INTO @DATA(lv_last_db_run_id).
@@ -1554,6 +1560,13 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     DATA(lt_head_buffer) = zpru_cl_axc_buffer=>header_buffer.
     SORT lt_head_buffer BY instance-run_id DESCENDING.
     DATA(lv_last_buf_run_id) = VALUE #( lt_head_buffer[ 1 ]-instance-run_id OPTIONAL ).
+
+    IF lv_last_db_run_id IS INITIAL AND lv_last_buf_run_id IS INITIAL.
+      lv_run_id_base = 1.
+      lv_run_id_base_char = CONV #( lv_run_id_base ).
+      rv_run_id = |{ lv_run_id_base_char ALPHA = IN }|.
+      RETURN.
+    ENDIF.
 
     IF lv_last_db_run_id = lv_last_buf_run_id.
       lv_run_id_base = CONV #( lv_last_buf_run_id ).
@@ -1570,7 +1583,7 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
     lv_run_id_base = lv_run_id_base + 1.
 
     lv_run_id_base_char = CONV #( lv_run_id_base ).
-    rv_run_id = |{ lv_run_id_base_char ALPHA = OUT }|.
+    rv_run_id = |{ lv_run_id_base_char ALPHA = IN }|.
 
   ENDMETHOD.
 
@@ -1578,6 +1591,10 @@ CLASS zpru_cl_axc_service IMPLEMENTATION.
 
     DATA ls_reported TYPE zpru_if_agent_frw=>ts_axc_reported.
     DATA ls_failed   TYPE zpru_if_agent_frw=>ts_axc_failed.
+
+    IF iv_query_number_base IS NOT INITIAL.
+      rv_query_number = iv_query_number_base + 1.
+    ENDIF.
 
     IF iv_run_uuid IS INITIAL.
       RETURN.

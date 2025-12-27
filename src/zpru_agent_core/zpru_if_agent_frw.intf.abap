@@ -2,9 +2,9 @@ INTERFACE zpru_if_agent_frw
   PUBLIC.
 
   CONSTANTS: BEGIN OF  cs_execution_status,
-               new       TYPE c LENGTH 1 VALUE space,
-               running   TYPE c LENGTH 1 VALUE `R`,
-               completed TYPE c LENGTH 1 VALUE `C`,
+               new       TYPE ZPRU_DE_AXC_QUERY_STATUS VALUE `N`,
+               ERROR   TYPE ZPRU_DE_AXC_QUERY_STATUS VALUE `E`,
+               completed TYPE ZPRU_DE_AXC_QUERY_STATUS VALUE `C`,
              END OF cs_execution_status.
 
   CONSTANTS:

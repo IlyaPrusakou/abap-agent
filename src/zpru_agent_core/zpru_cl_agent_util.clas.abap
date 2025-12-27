@@ -50,7 +50,7 @@ CLASS zpru_cl_agent_util IMPLEMENTATION.
 
     DATA(lt_symbols) = lo_abap_struct->get_symbols( ).
 
-    IF lt_symbols IS NOT INITIAL.
+    IF lt_symbols IS INITIAL.
       RETURN.
     ENDIF.
 

@@ -10,45 +10,33 @@ CLASS zpru_cl_dummy_agent_logic DEFINITION
     INTERFACES zpru_if_prompt_provider.
     INTERFACES zpru_if_tool_provider.
     INTERFACES zpru_if_input_schema_provider.
-    INTERFACES zpru_if_unit_agent.
+    TYPES: BEGIN OF ts_method_registr,
+             call_decision_engine   TYPE abap_boolean,
+             prepare_final_response TYPE abap_boolean,
+             get_agent_info         TYPE abap_boolean,
+             get_prompt_language    TYPE abap_boolean,
+             get_system_prompt      TYPE abap_boolean,
+             get_tool               TYPE abap_boolean,
+             get_input_schema       TYPE abap_boolean,
+             simple_tool            TYPE abap_boolean,
+             knowledge              TYPE abap_boolean,
+             nested_agent           TYPE abap_boolean,
+           END OF ts_method_registr.
+
+    CLASS-DATA ms_method_registr TYPE ts_method_registr.
+
 ENDCLASS.
 
 
 CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
-  METHOD zpru_if_unit_agent~execute_agent.
-    DATA lo_api_agent TYPE REF TO zpru_if_api_agent.
-
-    lo_api_agent = NEW zpru_cl_api_agent( ).
-    TRY.
-        lo_api_agent->initialize( EXPORTING iv_agent_name = iv_agent_name
-                                  IMPORTING es_agent      = DATA(ls_agent)
-                                  " TODO: variable is assigned but never used (ABAP cleaner)
-                                            et_tools      = DATA(lt_tools) ).
-
-        lo_api_agent->set_input_query( iv_input_query = iv_input_query
-                                       iv_agent_uuid  = ls_agent-agent_uuid ).
-
-        lo_api_agent->build_execution( EXPORTING iv_agent_uuid       = ls_agent-agent_uuid
-                                       IMPORTING ev_built_run_uuid   = DATA(lv_built_run_uuid)
-                                                 ev_built_query_uuid = DATA(lv_built_query_uuid)  ).
-
-        lo_api_agent->run( EXPORTING iv_run_uuid       = lv_built_run_uuid
-                                     iv_query_uuid     = lv_built_query_uuid
-                           IMPORTING
-                           " TODO: variable is assigned but never used (ABAP cleaner)
-                                     eo_final_response = DATA(lo_final_response) ).
-
-        lo_api_agent->save_execution( iv_do_commit = abap_true ).
-      CATCH zpru_cx_agent_core.
-    ENDTRY.
-  ENDMETHOD.
 
   METHOD zpru_if_decision_provider~call_decision_engine.
     DATA lo_decision_provider TYPE REF TO zpru_if_decision_provider.
 
     lo_decision_provider = NEW lcl_decision_provider( ).
 
-    lo_decision_provider->call_decision_engine( EXPORTING io_controller          = io_controller
+    lo_decision_provider->call_decision_engine( EXPORTING is_agent               = is_agent
+                                                          io_controller          = io_controller
                                                           io_input               = io_input
                                                           io_system_prompt       = io_system_prompt
                                                           io_short_memory        = io_short_memory
@@ -63,7 +51,7 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~clear_history.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     lo_short_memory->clear_history( ).
   ENDMETHOD.
 
@@ -77,21 +65,21 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~get_discard_strategy.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     ro_discard_strategy = lo_short_memory->get_discard_strategy( ).
   ENDMETHOD.
 
   METHOD zpru_if_short_memory_provider~get_history.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     rt_history = lo_short_memory->get_history( ).
   ENDMETHOD.
 
   METHOD zpru_if_short_memory_provider~get_long_memory.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     ro_long_memory = lo_short_memory->get_long_memory( ).
   ENDMETHOD.
 
@@ -160,7 +148,7 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~save_message.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     lo_short_memory->save_message( it_message = it_message ).
   ENDMETHOD.
 
@@ -185,14 +173,14 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
   METHOD zpru_if_short_memory_provider~set_discard_strategy.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     lo_short_memory->set_discard_strategy( io_discard_strategy = io_discard_strategy ).
   ENDMETHOD.
 
   METHOD zpru_if_short_memory_provider~set_long_memory.
     DATA lo_short_memory TYPE REF TO zpru_if_short_memory_provider.
 
-    lo_short_memory = NEW lcl_short_memory_provider( ).
+    lo_short_memory = lcl_short_memory_provider=>get_instance( ).
     lo_short_memory->set_long_memory( io_long_memory = io_long_memory ).
   ENDMETHOD.
 
@@ -238,6 +226,9 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
     DATA lo_input_schema_provider TYPE REF TO zpru_if_input_schema_provider.
 
     lo_input_schema_provider = NEW lcl_input_schema_provider( ).
-    lo_input_schema_provider->get_input_schema( ).
+    ro_input_schema = lo_input_schema_provider->get_input_schema(
+       EXPORTING
+         is_tool_master_data = is_tool_master_data
+         is_execution_step   = is_execution_step ).
   ENDMETHOD.
 ENDCLASS.

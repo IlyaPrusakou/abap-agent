@@ -2,15 +2,18 @@ INTERFACE zpru_if_axc_service
   PUBLIC.
 
   METHODS generate_run_id
+    IMPORTING iv_run_id_base   TYPE i OPTIONAL
     RETURNING VALUE(rv_run_id) TYPE zpru_de_run_id.
 
   METHODS generate_query_number
     IMPORTING iv_run_uuid            TYPE sysuuid_x16
+              iv_query_number_base   TYPE zpru_de_query_number OPTIONAL
     RETURNING VALUE(rv_query_number) TYPE zpru_de_query_number.
 
   METHODS generate_step_number
     IMPORTING iv_query_uuid         TYPE sysuuid_x16
-    RETURNING VALUE(rv_step_number) TYPE ZPRU_DE_STEP_NUMBER.
+              iv_step_number_base   TYPE zpru_de_step_number OPTIONAL
+    RETURNING VALUE(rv_step_number) TYPE zpru_de_step_number.
 
   METHODS get_actual_query
     IMPORTING it_axc_head_k          TYPE zpru_if_axc_type_and_constant=>tt_axc_head_k

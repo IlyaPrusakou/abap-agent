@@ -29,6 +29,9 @@ CLASS zpru_todo_list IMPLEMENTATION.
 *5 add strategy for summarize and long memory process
 *6 save data as xstring in db ?????
 
+*27.12.2025
+*1 WHAT DO WITH ATTRIBUTES IN API CLASS???
+
   ENDMETHOD.
 
 ENDCLASS.
