@@ -247,6 +247,7 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
     lo_decision_provider = NEW lcl_decision_provider( ).
     lo_decision_provider->prepare_final_response( EXPORTING iv_run_uuid       = iv_run_uuid
                                                             iv_query_uuid     = iv_query_uuid
+                                                            io_last_output    = io_last_output
                                                   IMPORTING eo_final_response = eo_final_response
                                                   CHANGING  cs_axc_reported   = cs_axc_reported
                                                             cs_axc_failed     = cs_axc_failed

@@ -189,7 +189,7 @@ CLASS zpru_cl_agent_util IMPLEMENTATION.
               CONTINUE.
           ENDCASE.
         ENDDO.
-      CATCH cx_sxml_state_error INTO DATA(error_parse_oo). " TODO: variable is assigned but never used (ABAP cleaner)
+      CATCH cx_sxml_state_error cx_sxml_parse_error INTO DATA(lo_error).
         RETURN.
     ENDTRY.
   ENDMETHOD.

@@ -9,7 +9,7 @@ CLASS zpru_cl_api_agent DEFINITION
   PROTECTED SECTION.
     DATA mo_controller   TYPE REF TO zpru_if_agent_controller.
     DATA mo_short_memory TYPE REF TO zpru_if_short_memory_provider.
-    DATA mo_long_memory TYPE REF TO zpru_if_long_memory_provider.
+    DATA mo_long_memory  TYPE REF TO zpru_if_long_memory_provider.
     DATA mv_input_query  TYPE zpru_if_agent_frw=>ts_json.
 
     METHODS get_short_memory
@@ -164,14 +164,10 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                       CHANGING  cs_reported     = cs_adf_reported
                                 cs_failed       = cs_adf_failed ).
 
-    get_long_memory(
-      EXPORTING
-        iv_agent_uuid  = ls_agent-agent_uuid
-      IMPORTING
-        eo_long_memory = lo_long_memory
-      CHANGING
-        cs_reported    = cs_adf_reported
-        cs_failed      = cs_adf_failed ).
+    get_long_memory( EXPORTING iv_agent_uuid  = ls_agent-agent_uuid
+                     IMPORTING eo_long_memory = lo_long_memory
+                     CHANGING  cs_reported    = cs_adf_reported
+                               cs_failed      = cs_adf_failed ).
 
     IF ls_agent-agent_info_provider IS NOT INITIAL.
       CREATE OBJECT lo_agent_info_provider TYPE (ls_agent-agent_info_provider).
@@ -347,8 +343,9 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
         ls_execution_query-start_timestamp  = lv_now.
         ls_execution_query-input_prompt     = lo_utility->search_node_in_json( iv_json           = mv_input_query
                                                                                iv_field_2_search = 'CONTENT' ).
-        ls_execution_query-decision_log     = lo_utility->search_node_in_json( iv_json           = lv_decision_log
-                                                                               iv_field_2_search = 'CONTENT' ).
+        ls_execution_query-decision_log     = lo_utility->search_node_in_json(
+                                                  iv_json           = lv_decision_log_message
+                                                  iv_field_2_search = 'CONTENT' ).
 
         lo_axc_service->cba_query(
           EXPORTING it_axc_query_imp = VALUE #( ( query_uuid       = ls_execution_query-query_uuid
@@ -827,7 +824,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                                                                        control-agent_name            = abap_true
                                                                        control-agent_type            = abap_true
                                                                        control-short_memory_provider = abap_true
-                                                                       control-long_memory_provider = abap_true ) )
+                                                                       control-long_memory_provider  = abap_true ) )
                                 IMPORTING et_agent        = DATA(lt_agent)
                                 CHANGING  cs_reported     = cs_reported
                                           cs_failed       = cs_failed ).
@@ -885,7 +882,6 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ELSE.
       mo_long_memory->set_summarization( io_summarization = NEW zpru_cl_summarize_simple( ) ).
     ENDIF.
-
   ENDMETHOD.
 
   METHOD process_execution_steps.
@@ -1042,6 +1038,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ENDLOOP.
 
     DATA(lv_last_output) = lv_output_prompt.
+    lo_last_output = NEW zpru_cl_payload( ).
     lo_last_output->set_data( ir_data = NEW string( lv_last_output ) ).
 
     IF lt_message IS NOT INITIAL.
@@ -1084,6 +1081,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
         CREATE OBJECT lo_decision_provider TYPE (is_agent-decision_provider).
 
+        eo_final_response = NEW zpru_cl_payload( ).
+
         lo_decision_provider->prepare_final_response( EXPORTING iv_run_uuid       = is_execution_query-run_uuid
                                                                 iv_query_uuid     = is_execution_query-query_uuid
                                                                 io_last_output    = lo_last_output
@@ -1105,20 +1104,21 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                                        | "CONTENT" : "{ <ls_query_2_upd>-output_response }" \}|.
 
         lv_count += 1.
-        lt_message = VALUE #(
-            ( message_cid  = |{ lv_now }-{ sy-uname }-PROCESS_EXECUTION_STEPS_{ lv_count }|
-              stage        = 'PROCESS_EXECUTION_STEPS'
-              sub_stage    = |FINAL_RESPONSE|
-              namespace    = |{ sy-uname }.{ is_agent-agent_name }.{ is_execution_header-run_id }.{ is_execution_query-query_number }|
-              user_name    = sy-uname
-              agent_uuid   = is_agent-agent_uuid
-              run_uuid     = is_execution_query-run_uuid
-              query_uuid   = is_execution_query-query_uuid
-              message_time = lv_now
-              content      = |\{ "RUN_ID" : "{ is_execution_header-run_id }", | &&
-                             | "QUERY_NUMBER" : "{ is_execution_query-query_number }", | &&
-                             | "FINAL_RESPONSE" : { lv_final_response_message }  \}|
-              message_type = zpru_if_short_memory_provider=>cs_msg_type-step_output ) ).
+        APPEND INITIAL LINE TO lt_message ASSIGNING <ls_message>.
+        <ls_message> = VALUE #(
+            message_cid  = |{ lv_now }-{ sy-uname }-PROCESS_EXECUTION_STEPS_{ lv_count }|
+            stage        = 'PROCESS_EXECUTION_STEPS'
+            sub_stage    = |FINAL_RESPONSE|
+            namespace    = |{ sy-uname }.{ is_agent-agent_name }.{ is_execution_header-run_id }.{ is_execution_query-query_number }|
+            user_name    = sy-uname
+            agent_uuid   = is_agent-agent_uuid
+            run_uuid     = is_execution_query-run_uuid
+            query_uuid   = is_execution_query-query_uuid
+            message_time = lv_now
+            content      = |\{ "RUN_ID" : "{ is_execution_header-run_id }", | &&
+                           | "QUERY_NUMBER" : "{ is_execution_query-query_number }", | &&
+                           | "FINAL_RESPONSE" : { lv_final_response_message }  \}|
+            message_type = zpru_if_short_memory_provider=>cs_msg_type-step_output  ).
 
         lo_short_memory->save_message( it_message = lt_message ).
 
@@ -1142,6 +1142,8 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     IF iv_run_uuid IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
+
+    lo_axc_service = zpru_cl_axc_factory=>zpru_if_axc_factory~get_zpru_if_axc_service( ).
 
     lo_axc_service->read_header( EXPORTING it_head_read_k = VALUE #( ( run_uuid = iv_run_uuid
                                                                        control  = VALUE #(
@@ -1202,6 +1204,7 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ENDIF.
 
     ls_execution_query = <ls_execution_query>.
+    es_execution_query = ls_execution_query.
 
     lo_axc_service->rba_step( EXPORTING it_rba_step_k = VALUE #( ( query_uuid = ls_execution_query-query_uuid
                                                                    control    = VALUE #(
@@ -1382,14 +1385,10 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
                       CHANGING  cs_reported     = cs_adf_reported
                                 cs_failed       = cs_adf_failed ).
 
-    get_long_memory(
-      EXPORTING
-        iv_agent_uuid  = ls_agent-agent_uuid
-      IMPORTING
-        eo_long_memory = lo_long_memory
-      CHANGING
-        cs_reported    = cs_adf_reported
-        cs_failed      = cs_adf_failed ).
+    get_long_memory( EXPORTING iv_agent_uuid  = ls_agent-agent_uuid
+                     IMPORTING eo_long_memory = lo_long_memory
+                     CHANGING  cs_reported    = cs_adf_reported
+                               cs_failed      = cs_adf_failed ).
 
     IF ls_agent-agent_info_provider IS NOT INITIAL.
       CREATE OBJECT lo_agent_info_provider TYPE (ls_agent-agent_info_provider).
@@ -1524,8 +1523,9 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
         ls_execution_query-start_timestamp  = lv_now.
         ls_execution_query-input_prompt     = lo_utility->search_node_in_json( iv_json           = mv_input_query
                                                                                iv_field_2_search = 'CONTENT' ).
-        ls_execution_query-decision_log     = lo_utility->search_node_in_json( iv_json           = lv_decision_log
-                                                                               iv_field_2_search = 'CONTENT' ).
+        ls_execution_query-decision_log     = lo_utility->search_node_in_json(
+                                                  iv_json           = lv_decision_log_message
+                                                  iv_field_2_search = 'CONTENT' ).
 
         lo_axc_service->cba_query(
           EXPORTING it_axc_query_imp = VALUE #( ( query_uuid       = ls_execution_query-query_uuid
@@ -1667,26 +1667,19 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_long_memory.
-
-    IF  iv_agent_uuid IS INITIAL.
+    IF iv_agent_uuid IS INITIAL.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
-    get_short_memory(
-      EXPORTING
-        iv_agent_uuid   = iv_agent_uuid
-      IMPORTING
-        eo_short_memory = DATA(lo_short_memory)
-      CHANGING
-        cs_reported     = cs_reported
-        cs_failed       = cs_failed ).
+    get_short_memory( EXPORTING iv_agent_uuid   = iv_agent_uuid
+                      IMPORTING eo_short_memory = DATA(lo_short_memory)
+                      CHANGING  cs_reported     = cs_reported
+                                cs_failed       = cs_failed ).
 
     IF lo_short_memory IS NOT BOUND.
       RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
     eo_long_memory = lo_short_memory->get_long_memory( ).
-
   ENDMETHOD.
-
 ENDCLASS.
