@@ -27,10 +27,8 @@ CLASS zpru_cl_discard_save IMPLEMENTATION.
         eo_output = eo_output
         ev_error  = DATA(lv_error) ).
 
-    IF lv_error = abap_false.
-      COMMIT WORK.
-    ELSE.
-      ROLLBACK WORK.
+     IF lv_error = abap_true.
+      RAISE EXCEPTION NEW zpru_cx_agent_core( ).
     ENDIF.
 
   ENDMETHOD.

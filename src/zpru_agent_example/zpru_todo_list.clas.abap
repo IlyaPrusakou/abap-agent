@@ -31,9 +31,9 @@ CLASS zpru_todo_list IMPLEMENTATION.
 
 *27.12.2025
 *1 WHAT DO WITH ATTRIBUTES IN API CLASS???
-*2 what do with error flags in long memory save methods and in io_long_memory->save_summary
+*2 what do with error flags in long memory save methods and in io_long_memory->save_summary - fixed
 *3 add possibility to provide configuration outside of agent definition
-*4 add paralel save flag and logic in long memory save methods
+*4 add paralel save flag and logic in long memory save methods - refused
 
   ENDMETHOD.
 

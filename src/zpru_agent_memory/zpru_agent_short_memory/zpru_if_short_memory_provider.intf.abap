@@ -29,7 +29,8 @@ INTERFACE zpru_if_short_memory_provider
   TYPES tt_agent_message TYPE STANDARD TABLE OF ts_agent_message WITH EMPTY KEY.
 
   METHODS save_message
-    IMPORTING it_message TYPE tt_message.
+    IMPORTING it_message TYPE tt_message
+    raISING zpru_cx_agent_core.
 
   METHODS get_history
     RETURNING VALUE(rt_history) TYPE zpru_if_short_memory_provider=>tt_agent_message.
