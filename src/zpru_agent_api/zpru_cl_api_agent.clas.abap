@@ -500,6 +500,10 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
 
     mo_controller = NEW zpru_cl_agent_controller( ).
 
+    IF io_parent_controller IS BOUND.
+      mo_controller->mo_parent_controller = io_parent_controller.
+    ENDIF.
+
     lo_adf_service = zpru_cl_adf_factory=>zpru_if_adf_factory~get_zpru_if_adf_service( ).
 
     lo_adf_service->query_agent( EXPORTING it_agent_name = VALUE #( ( sign   = zpru_if_agent_frw=>cs_sign-include

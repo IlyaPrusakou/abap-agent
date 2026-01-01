@@ -11,6 +11,44 @@ CLASS zpru_cl_dummy_agent_logic DEFINITION
     INTERFACES zpru_if_tool_provider.
     INTERFACES zpru_if_input_schema_provider.
 
+    TYPES: BEGIN OF ts_gate_pass_assessment,
+             " --- Critical Question Answers ---
+             is_expected        TYPE abap_bool, " Question: Is the vehicle in the schedule?
+             is_on_time         TYPE abap_bool, " Question: Is it within the time slot?
+             is_carrier_allowed TYPE abap_bool, " Question: Is the vendor blocked/blacklisted?
+             is_driver_verified TYPE abap_bool, " Question: Does Driver ID match the record?
+             " --- Routing Data ---
+             assigned_gate      TYPE string,    " Answer: Which gate should they go to? (e.g., 'GATE_04')
+             " --- The 'Brain's' Explanation ---
+             explanation        TYPE string,    " Human-readable summary of the tool's result
+             risk_score         TYPE string,         " 0 = Green, 1 = Warning, 2 = Critical
+           END OF ts_gate_pass_assessment.
+
+    TYPES: BEGIN OF ts_context,
+             query                     TYPE string,
+             system_prompt             TYPE string,
+             gate_pass_assessment      TYPE ts_gate_pass_assessment,
+             gate_pass_assessment_json TYPE string,
+           END OF ts_context.
+
+    TYPES: BEGIN OF ty_rule,
+             rule_number      TYPE i,
+             rule_name        TYPE string,
+             rule_explanation TYPE string,
+           END OF ty_rule.
+
+    TYPES: tt_rules TYPE STANDARD TABLE OF ty_rule WITH EMPTY KEY.
+
+    TYPES: BEGIN OF ty_safety_protocol,
+             name               TYPE string,
+             description        TYPE string,   " Main purpose of the protocol
+             date_updated       TYPE d,
+             responsible_person TYPE string,
+             rules              TYPE tt_rules, " Nested structure
+           END OF ty_safety_protocol.
+
+    TYPES: tt_safety_knowledge TYPE STANDARD TABLE OF ty_safety_protocol WITH EMPTY KEY.
+
     " technical methods and attributes made for the sake of example
     TYPES: BEGIN OF ts_method_registr,
              call_decision_engine   TYPE abap_boolean,
@@ -134,11 +172,25 @@ CLASS zpru_cl_dummy_agent_logic IMPLEMENTATION.
     " Purpose: Integration with the Yard Management system.
     " Input: plate_number, driver_id.
     "
-    " Tool B: CHECK_STORAGE_CAPACITY (Knowledge Tool)
-    " Purpose: Query the current "Knowledge" of the warehouse.
-    " Input: material_group, quantity.
-    "
-    " Tool C: HAZMAT_ASSESSOR (Nested Agent)
+*Tool B: HAZMAT_KNOWLEDGE_BASE (The "Dummy RAG")
+*This tool acts as your Knowledge Source. Instead of checking capacity, it provides the Standard Operating Procedure (SOP) based on the CMR data.
+*The Procedure
+*Search Trigger: The tool receives the UN_Number or Hazard_Class from the Agent.
+*Lookup: It scans a "Knowledge Table" (internal dummy list) for matching safety protocols.
+*Instruction Retrieval: It fetches the specific handling requirements (e.g., fire safety, PPE).
+*Response: Returns a plain text string containing the legal and safety instructions.
+
+*Tool C: SUCCESSOR_DOC_GENERATOR (The "Action" Tool)
+*This tool is responsible for the transition from the CMR (Inbound) to the internal Warehouse process.
+*1. The Procedure
+*Preliminary Validation: * Does the CMR have a valid signature/status?
+*Is the Gross_Weight_KG within acceptable tolerances of the PO?
+*If validation fails, return an error (preventing document creation).
+*Document Mapping: Map CMR fields to the Successor Document (e.g., Plate_Number -> Vehicle ID in the Warehouse Task).
+*Creation: Simulate the call to an SAP BAPI (like BAPI_WHSE_TO_CREATE).
+*Confirmation: Return the new Document Number (e.g., Inbound Delivery or Warehouse Task ID).
+
+    " Tool D: HAZMAT_ASSESSOR (Nested Agent)
     " Purpose: This is a sub-agent specialized in Dangerous Goods. The Main Agent only calls this if the CMR hazard_class field is NOT empty.
     " Internal Tools of the Nested Agent:
     "     GET_SAFETY_PROTOCOL: Fetches PDF instructions for a specific UN Number.

@@ -18,11 +18,12 @@ INTERFACE zpru_if_api_agent
     RAISING   zpru_cx_agent_core.
 
   METHODS initialize
-    IMPORTING iv_agent_name   TYPE zpru_if_api_agent=>tv_agent_name
-    EXPORTING es_agent        TYPE zpru_if_adf_type_and_constant=>ts_agent
-              et_tools        TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
-    CHANGING  cs_adf_reported TYPE zpru_if_agent_frw=>ts_adf_reported OPTIONAL
-              cs_adf_failed   TYPE zpru_if_agent_frw=>ts_adf_failed OPTIONAL
+    IMPORTING iv_agent_name     TYPE zpru_if_api_agent=>tv_agent_name
+              io_parent_controller TYPE REF TO zpru_if_agent_controller OPTIONAL
+    EXPORTING es_agent          TYPE zpru_if_adf_type_and_constant=>ts_agent
+              et_tools          TYPE zpru_if_adf_type_and_constant=>tt_agent_tool
+    CHANGING  cs_adf_reported   TYPE zpru_if_agent_frw=>ts_adf_reported OPTIONAL
+              cs_adf_failed     TYPE zpru_if_agent_frw=>ts_adf_failed OPTIONAL
     RAISING   zpru_cx_agent_core.
 
   METHODS set_input_query
