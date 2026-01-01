@@ -33,7 +33,6 @@ CLASS lcl_stochastic_producer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-
 " business classes
 CLASS lcl_decision_provider DEFINITION CREATE PUBLIC.
   PUBLIC SECTION.
@@ -46,6 +45,16 @@ CLASS lcl_decision_provider IMPLEMENTATION.
     DATA lt_execution_plan TYPE zpru_if_decision_provider=>tt_execution_plan.
 
     zpru_cl_dummy_agent_logic=>ms_method_registr-call_decision_engine = abap_true.
+
+    TRY.
+        FINAL(lo_api) = cl_aic_islm_compl_api_factory=>get( )->create_instance( 'ST-GEMINI-3.0' ).
+        FINAL(lo_params) = lo_api->get_parameter_setter( ).
+        lo_params->set_temperature( '0.5' ).
+
+        FINAL(lv_response) = lo_api->execute_for_string( 'How are you?' )->get_completion( ).
+      CATCH  cx_aic_api_factory cx_aic_completion_api.
+
+    ENDTRY.
 
     GET TIME STAMP FIELD DATA(lv_now).
 
