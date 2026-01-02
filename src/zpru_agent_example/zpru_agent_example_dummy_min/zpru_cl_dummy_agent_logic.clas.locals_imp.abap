@@ -33,6 +33,7 @@ CLASS lcl_stochastic_producer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+
 " business classes
 CLASS lcl_decision_provider DEFINITION CREATE PUBLIC.
   PUBLIC SECTION.
@@ -51,8 +52,10 @@ CLASS lcl_decision_provider IMPLEMENTATION.
         FINAL(lo_params) = lo_api->get_parameter_setter( ).
         lo_params->set_temperature( '0.5' ).
 
+        " TODO: variable is assigned but never used (ABAP cleaner)
         FINAL(lv_response) = lo_api->execute_for_string( 'How are you?' )->get_completion( ).
-      CATCH  cx_aic_api_factory cx_aic_completion_api.
+      CATCH cx_aic_api_factory
+            cx_aic_completion_api.
 
     ENDTRY.
 
@@ -283,11 +286,12 @@ CLASS lcl_simple_tool DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zpru_if_tool_executor.
+    INTERFACES zpru_if_abap_executor.
 ENDCLASS.
 
 
 CLASS lcl_simple_tool IMPLEMENTATION.
-  METHOD zpru_if_tool_executor~execute_tool.
+  METHOD zpru_if_abap_executor~execute_code.
     DATA lv_payload    TYPE string.
     DATA lv_risk_score TYPE i.
     DATA lo_agent_util TYPE REF TO zpru_if_agent_util.
@@ -366,14 +370,6 @@ CLASS lcl_simple_tool IMPLEMENTATION.
     lv_payload = |{ lv_payload } - SIMPLE TOOL VISITED - { <ls_context>-gate_pass_assessment_json }|.
     eo_response->set_data( ir_data = NEW string( lv_payload ) ).
   ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~lookup_knowledge.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~run_nested_agent.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 
@@ -382,15 +378,12 @@ CLASS lcl_knowledge DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zpru_if_tool_executor.
+    INTERFACES zpru_if_knowledge_provider.
 ENDCLASS.
 
 
 CLASS lcl_knowledge IMPLEMENTATION.
-  METHOD zpru_if_tool_executor~execute_tool.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~lookup_knowledge.
+  METHOD zpru_if_knowledge_provider~lookup_knowledge.
     DATA lv_payload    TYPE string.
     " TODO: variable is assigned but never used (ABAP cleaner)
     DATA lt_safety_rag TYPE zpru_cl_dummy_agent_logic=>tt_safety_knowledge.
@@ -554,10 +547,6 @@ CLASS lcl_knowledge IMPLEMENTATION.
     lv_payload = |{ lv_payload } - KNOWLEDGE TOOL VISITED - { lv_now }|.
     eo_response->set_data( ir_data = NEW string( lv_payload ) ).
   ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~run_nested_agent.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 
@@ -566,19 +555,12 @@ CLASS lcl_nested_agent DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zpru_if_tool_executor.
+    INTERFACES zpru_if_nested_agent_runner.
 ENDCLASS.
 
 
 CLASS lcl_nested_agent IMPLEMENTATION.
-  METHOD zpru_if_tool_executor~execute_tool.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~lookup_knowledge.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zpru_if_tool_executor~run_nested_agent.
+  METHOD zpru_if_nested_agent_runner~run_nested_agent.
     DATA lv_payload TYPE string.
 
     zpru_cl_dummy_agent_logic=>ms_method_registr-nested_agent = abap_true.

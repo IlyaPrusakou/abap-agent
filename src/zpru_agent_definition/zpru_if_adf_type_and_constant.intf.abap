@@ -8,9 +8,15 @@ INTERFACE zpru_if_adf_type_and_constant
              END OF cs_agent_status.
 
   CONSTANTS: BEGIN OF cs_step_type,
-               simple_code      TYPE zpru_de_adf_step_type VALUE 'S', " Simple Code
-               knowledge_source TYPE zpru_de_adf_step_type VALUE 'K', " Knowledge Source
-               nested_agent     TYPE zpru_de_adf_step_type VALUE 'A', " Nested Agent
+             nested_agent              TYPE zpru_de_adf_step_type VALUE 'A', " Nested Agent
+             knowledge_source          TYPE zpru_de_adf_step_type VALUE 'K', " Knowledge Source
+             abap_code                 TYPE zpru_de_adf_step_type VALUE 'B', " ABAP Code
+             http_request              TYPE zpru_de_adf_step_type VALUE 'H', " HTTP Request
+             service_consumption_model TYPE zpru_de_adf_step_type VALUE 'S', " Service Consumption Model
+             call_llm                  TYPE zpru_de_adf_step_type VALUE 'L', " Call LLM
+             dynamic_abap_code         TYPE zpru_de_adf_step_type VALUE 'D', " Dynamic ABAP Code
+             infer_ml_model            TYPE zpru_de_adf_step_type VALUE 'M', " Infer ML model
+             user_tool                 TYPE zpru_de_adf_step_type VALUE 'Z', " User Tool
              END OF cs_step_type.
 
   TYPES: BEGIN OF ts_agent_control,

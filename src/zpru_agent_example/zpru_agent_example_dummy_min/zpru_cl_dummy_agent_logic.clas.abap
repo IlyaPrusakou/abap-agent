@@ -19,9 +19,9 @@ CLASS zpru_cl_dummy_agent_logic DEFINITION
              is_driver_verified TYPE abap_bool, " Question: Does Driver ID match the record?
              " --- Routing Data ---
              assigned_gate      TYPE string,    " Answer: Which gate should they go to? (e.g., 'GATE_04')
-             " --- The 'Brain's' Explanation ---
+             " --- The Explanation ---
              explanation        TYPE string,    " Human-readable summary of the tool's result
-             risk_score         TYPE string,         " 0 = Green, 1 = Warning, 2 = Critical
+             risk_score         TYPE string,         " 0 = Green, 1 = Yellow, 2 = Red
            END OF ts_gate_pass_assessment.
 
     TYPES: BEGIN OF ts_context,
@@ -31,23 +31,23 @@ CLASS zpru_cl_dummy_agent_logic DEFINITION
              gate_pass_assessment_json TYPE string,
            END OF ts_context.
 
-    TYPES: BEGIN OF ty_rule,
+    TYPES: BEGIN OF ts_rule,
              rule_number      TYPE i,
              rule_name        TYPE string,
              rule_explanation TYPE string,
-           END OF ty_rule.
+           END OF ts_rule.
 
-    TYPES: tt_rules TYPE STANDARD TABLE OF ty_rule WITH EMPTY KEY.
+    TYPES: tt_rules TYPE STANDARD TABLE OF ts_rule WITH EMPTY KEY.
 
-    TYPES: BEGIN OF ty_safety_protocol,
+    TYPES: BEGIN OF ts_safety_protocol,
              name               TYPE string,
              description        TYPE string,   " Main purpose of the protocol
              date_updated       TYPE d,
              responsible_person TYPE string,
-             rules              TYPE tt_rules, " Nested structure
-           END OF ty_safety_protocol.
+             rules              TYPE tt_rules, " Safety rules
+           END OF ts_safety_protocol.
 
-    TYPES: tt_safety_knowledge TYPE STANDARD TABLE OF ty_safety_protocol WITH EMPTY KEY.
+    TYPES: tt_safety_knowledge TYPE STANDARD TABLE OF ts_safety_protocol WITH EMPTY KEY.
 
     " technical methods and attributes made for the sake of example
     TYPES: BEGIN OF ts_method_registr,
