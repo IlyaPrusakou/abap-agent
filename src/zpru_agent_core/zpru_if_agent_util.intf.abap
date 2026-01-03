@@ -38,8 +38,20 @@ INTERFACE zpru_if_agent_util
 
   " support only simple text targets, don't work with json subtree
   METHODS search_node_in_json
-    IMPORTING iv_json         TYPE zpru_if_agent_frw=>ts_json
-              iv_field_2_search type string
-    RETURNING VALUE(rv_value) TYPE string.
+    IMPORTING iv_json           TYPE zpru_if_agent_frw=>ts_json
+              iv_field_2_search TYPE string
+    RETURNING VALUE(rv_value)   TYPE string.
+
+  TYPES: BEGIN OF ts_fragment,
+           content  TYPE string,
+           is_valid TYPE abap_boolean,
+         END OF ts_fragment.
+
+  TYPES: tt_fragment TYPE STANDARD TABLE OF ts_fragment WITH EMPTY KEY.
+
+  METHODS snip_json
+    IMPORTING iv_json             TYPE zpru_if_agent_frw=>ts_json
+              iv_field_2_search   TYPE string
+    RETURNING VALUE(rt_fragments) TYPE tt_fragment.
 
 ENDINTERFACE.

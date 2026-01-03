@@ -44,6 +44,10 @@ CLASS zpru_todo_list IMPLEMENTATION.
 *IS_IDEMPOTENT   ABAP_BOOL       CHAR    1   Safe for Auto-Retry
 *TERM_ON_FAIL    ABAP_BOOL       CHAR    1   Terminate Process on Error
 
+*3 make framework system prompt
+*4 again recheck what formats to use json or string
+*5 finish with dynamic invokation
+
   ENDMETHOD.
 
 ENDCLASS.
