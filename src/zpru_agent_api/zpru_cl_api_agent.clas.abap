@@ -3593,4 +3593,40 @@ CLASS zpru_cl_api_agent IMPLEMENTATION.
     ro_util = get_utility( ).
   ENDMETHOD.
 
+  METHOD zpru_if_api_agent~create_agent_definition.
+    DATA lo_adf_service TYPE REF TO zpru_if_adf_service.
+
+    CLEAR: es_reported,
+           es_failed,
+           es_mapped.
+
+    IF it_agent_create IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lo_adf_service ?= zpru_cl_agent_service_mngr=>get_service(
+                          iv_service = `ZPRU_IF_ADF_SERVICE`
+                          iv_context = zpru_if_agent_frw=>cs_context-standard ).
+
+    lo_adf_service->create_agent(
+      EXPORTING
+        it_agent_create_imp = it_agent_create
+      CHANGING
+        cs_reported         = es_reported
+        cs_failed           = es_failed
+        cs_mapped           = es_mapped ).
+
+    IF it_tool_create IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lo_adf_service->cba_tool(
+      EXPORTING
+        it_tool_create_imp = it_tool_create
+      CHANGING
+        cs_reported        = es_reported
+        cs_failed          = es_failed
+        cs_mapped          = es_mapped ).
+  ENDMETHOD.
+
 ENDCLASS.
