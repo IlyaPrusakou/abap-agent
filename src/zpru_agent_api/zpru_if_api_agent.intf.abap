@@ -178,4 +178,12 @@ INTERFACE zpru_if_api_agent
     RETURNING VALUE(ro_util) TYPE REF TO zpru_if_agent_util
     RAISING   zpru_cx_agent_core.
 
+  METHODS create_agent_definition
+    IMPORTING it_agent_create     TYPE zpru_if_adf_type_and_constant=>tt_agent_create_imp
+              it_tool_create      TYPE zpru_if_adf_type_and_constant=>tt_tool_create_imp
+    EXPORTING es_reported         TYPE zpru_if_agent_frw=>ts_adf_reported
+              es_failed           TYPE zpru_if_agent_frw=>ts_adf_failed
+              es_mapped           TYPE zpru_if_agent_frw=>ts_adf_mapped
+    RAISING   zpru_cx_agent_core.
+
 ENDINTERFACE.
