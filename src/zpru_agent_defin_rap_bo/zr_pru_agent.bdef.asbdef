@@ -14,22 +14,36 @@ authorization master ( global )
 
   field ( readonly )
   AIPF7LastChanged,
-  AIPF7LocalLastChanged;
-
-  field ( readonly )
+  AIPF7LocalLastChanged,
   AIPF7AgentUUID;
+
+  field ( readonly : update )
+  AIPF7AgentType,
+  AIPF7DecisionProvider;
 
   association _tool { create; with draft; }
 
-  create;
+  create( precheck );
   update;
   delete;
+
+  validation checkAgentName on save { field AIPF7AgentName; }
+  validation checkAgentType on save { field AIPF7AgentType; }
+  validation checkDecisionProvider on save { field AIPF7DecisionProvider; }
+
+  draft determine action Prepare
+  {
+    validation checkAgentName;
+    validation checkAgentType;
+    validation checkDecisionProvider;
+  }
+
+  action changeDecisionEngine parameter ZD_AIPF7AGTCHGDCSNENGNP;
 
   draft action Activate optimized;
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare;
 
   mapping for zpru_agent corresponding extensible
     {
