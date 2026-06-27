@@ -18,7 +18,7 @@ ENDCLASS.
 CLASS zpru_cl_adhoc_agent IMPLEMENTATION.
 
   METHOD get_api_agent.
-    " test
+    " test2
     ro_api_agent = zpru_cl_agent_service_mngr=>get_agent_api( ).
   ENDMETHOD.
 
