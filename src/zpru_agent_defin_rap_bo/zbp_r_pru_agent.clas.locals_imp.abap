@@ -2,10 +2,12 @@ CLASS lhc_zr_pru_agent DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
     CONSTANTS:
       BEGIN OF state_area,
-        checkagentname           TYPE string VALUE 'CHECKAGENTNAME',
-        checkagenttype           TYPE string VALUE 'CHECKAGENTTYPE',
-        checkdecisionprovider    TYPE string VALUE 'CHECKDECISIONPROVIDER',
-        checkshortmemoryprovider TYPE string VALUE 'CHECKSHORTMEMORYPROVIDER',
+        checkagentname            TYPE string VALUE 'CHECKAGENTNAME',
+        checkagenttype            TYPE string VALUE 'CHECKAGENTTYPE',
+        checkdecisionprovider     TYPE string VALUE 'CHECKDECISIONPROVIDER',
+        checkshortmemoryprovider  TYPE string VALUE 'CHECKSHORTMEMORYPROVIDER',
+        checklongmemoryprovider   TYPE string VALUE 'CHECKLONGMEMORYPROVIDER',
+        checksystempromptprovider TYPE string VALUE 'CHECKSYSTEMPROMPTPROVIDER',
       END OF state_area.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
@@ -20,10 +22,18 @@ CLASS lhc_zr_pru_agent DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Agent~checkDecisionProvider.
     METHODS checkshortmemoryprovider FOR VALIDATE ON SAVE
       IMPORTING keys FOR Agent~checkShortMemoryProvider.
+    METHODS checklongmemoryprovider FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Agent~checkLongMemoryProvider.
+    METHODS checksystempromptprovider FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Agent~checkSystemPromptProvider.
     METHODS changeDecisionEngine FOR MODIFY
       IMPORTING keys FOR ACTION Agent~changeDecisionEngine.
     METHODS changeshortmemoryprovider FOR MODIFY
       IMPORTING keys FOR ACTION Agent~changeShortMemoryProvider.
+    METHODS changelongmemoryprovider FOR MODIFY
+      IMPORTING keys FOR ACTION Agent~changeLongMemoryProvider.
+    METHODS changesystempromptprovider FOR MODIFY
+      IMPORTING keys FOR ACTION Agent~changeSystemPromptProvider.
     METHODS precheck_create FOR PRECHECK
       IMPORTING entities FOR CREATE Agent.
 ENDCLASS.
@@ -81,6 +91,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
       APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
       <ls_report>-%tky        = <ls_agent>-%tky.
       <ls_report>-%state_area = state_area-checkagentname.
+      <ls_report>-%element-AIPF7AgentName = if_abap_behv=>mk-on.
       <ls_report>-%msg        = new_message_with_text(
           severity = if_abap_behv_message=>severity-error
           text     = |Agent name '{ <ls_agent>-AIPF7AgentName }' already exists. Please use a unique name.| ).
@@ -144,6 +155,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
         APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
         <ls_report>-%tky        = <ls_agent>-%tky.
         <ls_report>-%state_area = state_area-checkagenttype.
+        <ls_report>-%element-AIPF7AgentType = if_abap_behv=>mk-on.
         <ls_report>-%msg        = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
             text     = |Agent type must not be initial.| ).
@@ -158,6 +170,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
         APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
         <ls_report>-%tky        = <ls_agent>-%tky.
         <ls_report>-%state_area = state_area-checkagenttype.
+        <ls_report>-%element-AIPF7AgentType = if_abap_behv=>mk-on.
         <ls_report>-%msg        = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
             text     = |Agent type '{ <ls_agent>-AIPF7AgentType }' does not exist in ZPRU_AGENT_TYPE.| ).
@@ -213,6 +226,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
         APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
         <ls_report>-%tky        = <ls_agent>-%tky.
         <ls_report>-%state_area = state_area-checkdecisionprovider.
+        <ls_report>-%element-AIPF7DecisionProvider = if_abap_behv=>mk-on.
         <ls_report>-%msg        = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
             text     = |Decision provider must not be initial.| ).
@@ -236,6 +250,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
             APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
             <ls_report>-%tky        = <ls_agent>-%tky.
             <ls_report>-%state_area = state_area-checkdecisionprovider.
+            <ls_report>-%element-AIPF7DecisionProvider = if_abap_behv=>mk-on.
             <ls_report>-%msg        = new_message_with_text(
                 severity = if_abap_behv_message=>severity-error
                 text     = |Class '{ <ls_agent>-AIPF7DecisionProvider }' does not implement ZPRU_IF_DECISION_PROVIDER.| ).
@@ -249,6 +264,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
           APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
           <ls_report>-%tky        = <ls_agent>-%tky.
           <ls_report>-%state_area = state_area-checkdecisionprovider.
+          <ls_report>-%element-AIPF7DecisionProvider = if_abap_behv=>mk-on.
           <ls_report>-%msg        = new_message_with_text(
               severity = if_abap_behv_message=>severity-error
               text     = |Class '{ <ls_agent>-AIPF7DecisionProvider }' does not exist.| ).
@@ -317,7 +333,11 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
     ENDIF.
 
     " 4. Loop — fill local update variable + %control explicitly
-    LOOP AT lt_agent ASSIGNING FIELD-SYMBOL(<ls_agent>).
+    LOOP AT keys ASSIGNING <ls_key>.
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
       APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
       <ls_update>-%tky                       = <ls_agent>-%tky.
       <ls_update>-AIPF7DecisionProvider       = <ls_key>-%param-AIPF7DecisionProvider.
@@ -368,6 +388,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
         APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
         <ls_report>-%tky        = <ls_agent>-%tky.
         <ls_report>-%state_area = state_area-checkshortmemoryprovider.
+        <ls_report>-%element-AIPF7ShortMemoryProvider = if_abap_behv=>mk-on.
         <ls_report>-%msg        = new_message_with_text(
             severity = if_abap_behv_message=>severity-error
             text     = |Short memory provider must not be initial.| ).
@@ -391,6 +412,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
             APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
             <ls_report>-%tky        = <ls_agent>-%tky.
             <ls_report>-%state_area = state_area-checkshortmemoryprovider.
+            <ls_report>-%element-AIPF7ShortMemoryProvider = if_abap_behv=>mk-on.
             <ls_report>-%msg        = new_message_with_text(
                 severity = if_abap_behv_message=>severity-error
                 text     = |Class '{ <ls_agent>-AIPF7ShortMemoryProvider }' does not implement ZPRU_IF_SHORT_MEMORY_PROVIDER.| ).
@@ -404,6 +426,7 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
           APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
           <ls_report>-%tky        = <ls_agent>-%tky.
           <ls_report>-%state_area = state_area-checkshortmemoryprovider.
+          <ls_report>-%element-AIPF7ShortMemoryProvider = if_abap_behv=>mk-on.
           <ls_report>-%msg        = new_message_with_text(
               severity = if_abap_behv_message=>severity-error
               text     = |Class '{ <ls_agent>-AIPF7ShortMemoryProvider }' does not exist.| ).
@@ -472,7 +495,11 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
     ENDIF.
 
     " 4. Loop — fill local update variable + %control explicitly
-    LOOP AT lt_agent ASSIGNING FIELD-SYMBOL(<ls_agent>).
+    LOOP AT keys ASSIGNING <ls_key>.
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
       APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
       <ls_update>-%tky                           = <ls_agent>-%tky.
       <ls_update>-AIPF7ShortMemoryProvider        = <ls_key>-%param-AIPF7ShortMemoryProvider.
@@ -484,6 +511,301 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
       MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
              ENTITY Agent
              UPDATE FIELDS ( AIPF7ShortMemoryProvider )
+             WITH lt_update.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD checklongmemoryprovider.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7LongMemoryProvider )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      " Formal invalidation — clear previous validation state
+      APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checklongmemoryprovider.
+
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_agent>-AIPF7LongMemoryProvider IS INITIAL.
+        APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_agent>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_agent>-%tky.
+        <ls_report>-%state_area = state_area-checklongmemoryprovider.
+        <ls_report>-%element-AIPF7LongMemoryProvider = if_abap_behv=>mk-on.
+        <ls_report>-%msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Long memory provider must not be initial.| ).
+        CONTINUE.
+      ENDIF.
+
+      TRY.
+          DATA(lo_desc) = CAST cl_abap_classdescr( cl_abap_typedescr=>describe_by_name( <ls_agent>-AIPF7LongMemoryProvider ) ).
+          DATA(lv_implements) = abap_false.
+          LOOP AT lo_desc->interfaces ASSIGNING FIELD-SYMBOL(<ls_intf>).
+            IF <ls_intf>-name = 'ZPRU_IF_LONG_MEMORY_PROVIDER'.
+              lv_implements = abap_true.
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+          IF lv_implements = abap_false.
+            APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+            <ls_fail>-%tky        = <ls_agent>-%tky.
+            <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+            APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+            <ls_report>-%tky        = <ls_agent>-%tky.
+            <ls_report>-%state_area = state_area-checklongmemoryprovider.
+            <ls_report>-%element-AIPF7LongMemoryProvider = if_abap_behv=>mk-on.
+            <ls_report>-%msg        = new_message_with_text(
+                severity = if_abap_behv_message=>severity-error
+                text     = |Class '{ <ls_agent>-AIPF7LongMemoryProvider }' does not implement ZPRU_IF_LONG_MEMORY_PROVIDER.| ).
+            CONTINUE.
+          ENDIF.
+        CATCH cx_root.
+          APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+          <ls_fail>-%tky        = <ls_agent>-%tky.
+          <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+          APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+          <ls_report>-%tky        = <ls_agent>-%tky.
+          <ls_report>-%state_area = state_area-checklongmemoryprovider.
+          <ls_report>-%element-AIPF7LongMemoryProvider = if_abap_behv=>mk-on.
+          <ls_report>-%msg        = new_message_with_text(
+              severity = if_abap_behv_message=>severity-error
+              text     = |Class '{ <ls_agent>-AIPF7LongMemoryProvider }' does not exist.| ).
+          CONTINUE.
+      ENDTRY.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checklongmemoryprovider.
+      <ls_report>-%msg        = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                       text     = |Agent not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD changelongmemoryprovider.
+    DATA lt_update TYPE TABLE FOR UPDATE zr_pru_agent\\Agent.
+
+    " 1. Check empty input
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+      IF <ls_key>-%param-AIPF7LongMemoryProvider IS INITIAL.
+        APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_key>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_key>-%tky.
+        <ls_report>-%msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Long memory provider must not be empty.| ).
+      ENDIF.
+    ENDLOOP.
+
+    IF failed-agent IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    " 2. Read entities
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7LongMemoryProvider )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent)
+         FAILED DATA(ls_read_failed).
+
+    " 3. Handle not found
+    IF ls_read_failed-agent IS NOT INITIAL.
+      LOOP AT ls_read_failed-agent ASSIGNING FIELD-SYMBOL(<ls_read_fail>).
+        APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+        <ls_fail>-%tky        = <ls_read_fail>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+        APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+        <ls_report>-%tky        = <ls_read_fail>-%tky.
+        <ls_report>-%msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Agent not found.| ).
+      ENDLOOP.
+      RETURN.
+    ENDIF.
+
+    " 4. Loop — fill local update variable + %control explicitly
+    LOOP AT keys ASSIGNING <ls_key>.
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
+      <ls_update>-%tky                           = <ls_agent>-%tky.
+      <ls_update>-AIPF7LongMemoryProvider         = <ls_key>-%param-AIPF7LongMemoryProvider.
+      <ls_update>-%control-AIPF7LongMemoryProvider = if_abap_behv=>mk-on.
+    ENDLOOP.
+
+    " 5. Single MODIFY ENTITIES if anything to update
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
+             ENTITY Agent
+             UPDATE FIELDS ( AIPF7LongMemoryProvider )
+             WITH lt_update.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD checksystempromptprovider.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7SystemPromptProvider )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      " Formal invalidation — clear previous validation state
+      APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checksystempromptprovider.
+
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      " Field is optional — skip validation if empty
+      IF <ls_agent>-AIPF7SystemPromptProvider IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      TRY.
+          DATA(lo_desc) = CAST cl_abap_classdescr( cl_abap_typedescr=>describe_by_name( <ls_agent>-AIPF7SystemPromptProvider ) ).
+          DATA(lv_implements) = abap_false.
+          LOOP AT lo_desc->interfaces ASSIGNING FIELD-SYMBOL(<ls_intf>).
+            IF <ls_intf>-name = 'ZPRU_IF_PROMPT_PROVIDER'.
+              lv_implements = abap_true.
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+          IF lv_implements = abap_false.
+            APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+            <ls_fail>-%tky        = <ls_agent>-%tky.
+            <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+            APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+            <ls_report>-%tky        = <ls_agent>-%tky.
+            <ls_report>-%state_area = state_area-checksystempromptprovider.
+            <ls_report>-%element-AIPF7SystemPromptProvider = if_abap_behv=>mk-on.
+            <ls_report>-%msg        = new_message_with_text(
+                severity = if_abap_behv_message=>severity-error
+                text     = |Class '{ <ls_agent>-AIPF7SystemPromptProvider }' does not implement ZPRU_IF_PROMPT_PROVIDER.| ).
+            CONTINUE.
+          ENDIF.
+        CATCH cx_root.
+          APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+          <ls_fail>-%tky        = <ls_agent>-%tky.
+          <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+          APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+          <ls_report>-%tky        = <ls_agent>-%tky.
+          <ls_report>-%state_area = state_area-checksystempromptprovider.
+          <ls_report>-%element-AIPF7SystemPromptProvider = if_abap_behv=>mk-on.
+          <ls_report>-%msg        = new_message_with_text(
+              severity = if_abap_behv_message=>severity-error
+              text     = |Class '{ <ls_agent>-AIPF7SystemPromptProvider }' does not exist.| ).
+          CONTINUE.
+      ENDTRY.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checksystempromptprovider.
+      <ls_report>-%msg        = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                       text     = |Agent not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD changesystempromptprovider.
+    DATA lt_update TYPE TABLE FOR UPDATE zr_pru_agent\\Agent.
+
+    " 1. Read entities (empty is allowed, no precondition check)
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7SystemPromptProvider )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent)
+         FAILED DATA(ls_read_failed).
+
+    " 2. Handle not found
+    IF ls_read_failed-agent IS NOT INITIAL.
+      LOOP AT ls_read_failed-agent ASSIGNING FIELD-SYMBOL(<ls_read_fail>).
+        APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_read_fail>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+        APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_read_fail>-%tky.
+        <ls_report>-%msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Agent not found.| ).
+      ENDLOOP.
+      RETURN.
+    ENDIF.
+
+    " 3. Loop — fill local update variable + %control explicitly (empty allowed)
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
+      <ls_update>-%tky                              = <ls_agent>-%tky.
+      <ls_update>-AIPF7SystemPromptProvider          = <ls_key>-%param-AIPF7SystemPromptProvider.
+      <ls_update>-%control-AIPF7SystemPromptProvider  = if_abap_behv=>mk-on.
+    ENDLOOP.
+
+    " 4. Single MODIFY ENTITIES if anything to update
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
+             ENTITY Agent
+             UPDATE FIELDS ( AIPF7SystemPromptProvider )
              WITH lt_update.
     ENDIF.
   ENDMETHOD.

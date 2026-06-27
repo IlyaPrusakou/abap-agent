@@ -20,7 +20,9 @@ authorization master ( global )
   field ( readonly : update )
   AIPF7AgentType,
   AIPF7DecisionProvider,
-  AIPF7ShortMemoryProvider;
+  AIPF7ShortMemoryProvider,
+  AIPF7LongMemoryProvider,
+  AIPF7SystemPromptProvider;
 
   association _tool { create; with draft; }
 
@@ -32,6 +34,8 @@ authorization master ( global )
   validation checkAgentType on save { field AIPF7AgentType; }
   validation checkDecisionProvider on save { field AIPF7DecisionProvider; }
   validation checkShortMemoryProvider on save { field AIPF7ShortMemoryProvider; }
+  validation checkLongMemoryProvider on save { field AIPF7LongMemoryProvider; }
+  validation checkSystemPromptProvider on save { field AIPF7SystemPromptProvider; }
 
   draft determine action Prepare
   {
@@ -39,10 +43,14 @@ authorization master ( global )
     validation checkAgentType;
     validation checkDecisionProvider;
     validation checkShortMemoryProvider;
+    validation checkLongMemoryProvider;
+    validation checkSystemPromptProvider;
   }
 
   action changeDecisionEngine parameter ZD_AIPF7AGTCHGDCSNENGNP;
   action changeShortMemoryProvider parameter ZD_AIPF7AGTSHRTMMRY;
+  action changeLongMemoryProvider parameter ZD_AIPF7AGENTLONGMMRY;
+  action changeSystemPromptProvider parameter ZD_AIPF7SYSTPRPTPRVDRP;
 
   draft action Activate optimized;
   draft action Discard;
