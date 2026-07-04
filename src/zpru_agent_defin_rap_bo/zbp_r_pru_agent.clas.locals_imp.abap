@@ -8,6 +8,7 @@ CLASS lhc_zr_pru_agent DEFINITION INHERITING FROM cl_abap_behavior_handler.
         checkshortmemoryprovider  TYPE string VALUE 'CHECKSHORTMEMORYPROVIDER',
         checklongmemoryprovider   TYPE string VALUE 'CHECKLONGMEMORYPROVIDER',
         checksystempromptprovider TYPE string VALUE 'CHECKSYSTEMPROMPTPROVIDER',
+        checkagentmapper          TYPE string VALUE 'CHECKAGENTMAPPER',
       END OF state_area.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
@@ -26,6 +27,8 @@ CLASS lhc_zr_pru_agent DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Agent~checkLongMemoryProvider.
     METHODS checksystempromptprovider FOR VALIDATE ON SAVE
       IMPORTING keys FOR Agent~checkSystemPromptProvider.
+    METHODS checkagentmapper FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Agent~checkAgentMapper.
     METHODS changeDecisionEngine FOR MODIFY
       IMPORTING keys FOR ACTION Agent~changeDecisionEngine.
     METHODS changeshortmemoryprovider FOR MODIFY
@@ -34,6 +37,10 @@ CLASS lhc_zr_pru_agent DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Agent~changeLongMemoryProvider.
     METHODS changesystempromptprovider FOR MODIFY
       IMPORTING keys FOR ACTION Agent~changeSystemPromptProvider.
+    METHODS changeagentmapper FOR MODIFY
+      IMPORTING keys FOR ACTION Agent~changeAgentMapper.
+    METHODS fillagentmapper FOR DETERMINE ON SAVE
+      IMPORTING keys FOR Agent~fillAgentMapper.
     METHODS precheck_create FOR PRECHECK
       IMPORTING entities FOR CREATE Agent.
 ENDCLASS.
@@ -806,6 +813,167 @@ CLASS lhc_zr_pru_agent IMPLEMENTATION.
       MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
              ENTITY Agent
              UPDATE FIELDS ( AIPF7SystemPromptProvider )
+             WITH lt_update.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD checkagentmapper.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7AgentMapper )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      " Formal invalidation — clear previous validation state
+      APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkagentmapper.
+
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      " Field is optional — skip validation if empty
+      IF <ls_agent>-AIPF7AgentMapper IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      TRY.
+          DATA(lo_desc) = CAST cl_abap_classdescr( cl_abap_typedescr=>describe_by_name( <ls_agent>-AIPF7AgentMapper ) ).
+          DATA(lv_implements) = abap_false.
+          LOOP AT lo_desc->interfaces ASSIGNING FIELD-SYMBOL(<ls_intf>).
+            IF <ls_intf>-name = 'ZPRU_IF_AGENT_MAPPER'.
+              lv_implements = abap_true.
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+          IF lv_implements = abap_false.
+            APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+            <ls_fail>-%tky        = <ls_agent>-%tky.
+            <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+            APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+            <ls_report>-%tky        = <ls_agent>-%tky.
+            <ls_report>-%state_area = state_area-checkagentmapper.
+            <ls_report>-%element-AIPF7AgentMapper = if_abap_behv=>mk-on.
+            <ls_report>-%msg        = new_message_with_text(
+                severity = if_abap_behv_message=>severity-error
+                text     = |Class '{ <ls_agent>-AIPF7AgentMapper }' does not implement ZPRU_IF_AGENT_MAPPER.| ).
+            CONTINUE.
+          ENDIF.
+        CATCH cx_root.
+          APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+          <ls_fail>-%tky        = <ls_agent>-%tky.
+          <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+          APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+          <ls_report>-%tky        = <ls_agent>-%tky.
+          <ls_report>-%state_area = state_area-checkagentmapper.
+          <ls_report>-%element-AIPF7AgentMapper = if_abap_behv=>mk-on.
+          <ls_report>-%msg        = new_message_with_text(
+              severity = if_abap_behv_message=>severity-error
+              text     = |Class '{ <ls_agent>-AIPF7AgentMapper }' does not exist.| ).
+          CONTINUE.
+      ENDTRY.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-agent ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-agent ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkagentmapper.
+      <ls_report>-%msg        = new_message_with_text( severity = if_abap_behv_message=>severity-error
+                                                       text     = |Agent not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD changeagentmapper.
+    DATA lt_update TYPE TABLE FOR UPDATE zr_pru_agent\\Agent.
+
+    " 1. Read entities (empty is allowed, no precondition check)
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7AgentMapper )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent)
+         FAILED DATA(ls_read_failed).
+
+    " 2. Handle not found
+    IF ls_read_failed-agent IS NOT INITIAL.
+      LOOP AT ls_read_failed-agent ASSIGNING FIELD-SYMBOL(<ls_read_fail>).
+        APPEND INITIAL LINE TO failed-agent ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_read_fail>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+        APPEND INITIAL LINE TO reported-agent ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_read_fail>-%tky.
+        <ls_report>-%msg        = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Agent not found.| ).
+      ENDLOOP.
+      RETURN.
+    ENDIF.
+
+    " 3. Loop — fill local update variable + %control explicitly (empty allowed)
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+      ASSIGN lt_agent[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_agent>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
+      <ls_update>-%tky                       = <ls_agent>-%tky.
+      <ls_update>-AIPF7AgentMapper            = <ls_key>-%param-AIPF7AgentMapper.
+      <ls_update>-%control-AIPF7AgentMapper   = if_abap_behv=>mk-on.
+    ENDLOOP.
+
+    " 4. Single MODIFY ENTITIES if anything to update
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
+             ENTITY Agent
+             UPDATE FIELDS ( AIPF7AgentMapper )
+             WITH lt_update.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD fillagentmapper.
+    DATA lt_update TYPE TABLE FOR UPDATE zr_pru_agent\\Agent.
+
+    READ ENTITIES OF zr_pru_agent IN LOCAL MODE
+         ENTITY Agent
+         FIELDS ( AIPF7AgentMapper )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_agent).
+
+    LOOP AT lt_agent ASSIGNING FIELD-SYMBOL(<ls_agent>).
+      IF <ls_agent>-AIPF7AgentMapper IS NOT INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO lt_update ASSIGNING FIELD-SYMBOL(<ls_update>).
+      <ls_update>-%tky                     = <ls_agent>-%tky.
+      <ls_update>-AIPF7AgentMapper          = 'ZPRU_CL_AGENT_MAPPER'.
+      <ls_update>-%control-AIPF7AgentMapper = if_abap_behv=>mk-on.
+    ENDLOOP.
+
+    IF lt_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_pru_agent IN LOCAL MODE
+             ENTITY Agent
+             UPDATE FIELDS ( AIPF7AgentMapper )
              WITH lt_update.
     ENDIF.
   ENDMETHOD.
