@@ -32,6 +32,7 @@ authorization master ( global )
   delete;
 
   determination fillAgentMapper on save { create; }
+  determination fillAgentStatus on save { create; }
 
   validation checkAgentName on save { field AIPF7AgentName; }
   validation checkAgentType on save { field AIPF7AgentType; }
@@ -40,6 +41,8 @@ authorization master ( global )
   validation checkLongMemoryProvider on save { field AIPF7LongMemoryProvider; }
   validation checkSystemPromptProvider on save { field AIPF7SystemPromptProvider; }
   validation checkAgentMapper on save { field AIPF7AgentMapper; }
+  validation checkAgentInfoProvider on save { field AIPF7AgentInfoProvider; }
+  validation checkAgentStatus on save { field AIPF7AgentStatus; }
 
   draft determine action Prepare
   {
@@ -50,6 +53,8 @@ authorization master ( global )
     validation checkLongMemoryProvider;
     validation checkSystemPromptProvider;
     validation checkAgentMapper;
+    validation checkAgentInfoProvider;
+    validation checkAgentStatus;
   }
 
   action changeDecisionEngine parameter ZD_AIPF7AGTCHGDCSNENGNP;
@@ -57,6 +62,8 @@ authorization master ( global )
   action changeLongMemoryProvider parameter ZD_AIPF7AGENTLONGMMRY;
   action changeSystemPromptProvider parameter ZD_AIPF7SYSTPRPTPRVDRP;
   action changeAgentMapper parameter ZD_AIPF7AgentMapper;
+  action changeAgentStatus parameter ZD_AIPF7AgentStatus;
+  action changeAgentInfoProvider parameter ZD_AIPF7AgentInfoProvider;
 
   draft action Activate optimized;
   draft action Discard;
