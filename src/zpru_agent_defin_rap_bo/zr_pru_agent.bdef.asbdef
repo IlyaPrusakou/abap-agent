@@ -55,6 +55,11 @@ authorization master ( global )
     validation checkAgentMapper;
     validation checkAgentInfoProvider;
     validation checkAgentStatus;
+    validation ZR_PRU_AGENT_TOOL~checkToolName;
+    validation ZR_PRU_AGENT_TOOL~checkToolProvider;
+    validation ZR_PRU_AGENT_TOOL~checkStepType;
+    validation ZR_PRU_AGENT_TOOL~checkToolSchemaProvider;
+    validation ZR_PRU_AGENT_TOOL~checkToolInfoProvider;
   }
 
   action changeDecisionEngine parameter ZD_AIPF7AGTCHGDCSNENGNP;
@@ -107,6 +112,17 @@ authorization dependent by _agent
   delete;
 
   association _agent { with draft; }
+
+  validation checkToolName on save { field AIPF7ToolName; }
+  validation checkToolProvider on save { field AIPF7ToolProvider; }
+  validation checkStepType on save { field AIPF7StepType; }
+  validation checkToolSchemaProvider on save { field AIPF7ToolSchemaProvider; }
+  validation checkToolInfoProvider on save { field AIPF7ToolInfoProvider; }
+
+  action changeToolProvider parameter ZD_AIPF7TOOLPROVIDER;
+  action changeToolSchemaProvider parameter ZD_AIPF7TOOLSCHEMA;
+  action changeToolInfoProvider parameter ZD_AIPF7TOOLINFOPROVIDER;
+  action changeStepType parameter ZD_AIPF7TOOLSTEPTYPE;
 
   mapping for zpru_agent_tool corresponding extensible
     {

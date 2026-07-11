@@ -19,6 +19,12 @@ use etag
   use action Resume;
   use action Prepare;
   use action changeDecisionEngine;
+  use action changeShortMemoryProvider;
+  use action changeLongMemoryProvider;
+  use action changeSystemPromptProvider ;
+  use action changeAgentMapper ;
+  use action changeAgentStatus ;
+  use action changeAgentInfoProvider ;
 
 }
 
@@ -31,5 +37,10 @@ extensible
   use delete;
 
   use association _agent { with draft; }
+
+  use action changeToolProvider;
+  use action changeToolSchemaProvider;
+  use action changeToolInfoProvider;
+  use action changeStepType;
 
 }
