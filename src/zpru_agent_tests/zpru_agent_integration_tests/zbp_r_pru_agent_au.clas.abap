@@ -7,6 +7,7 @@ CLASS zbp_r_pru_agent_au DEFINITION
   RISK LEVEL HARMLESS
   CREATE PUBLIC .
 
+  " test
   PUBLIC SECTION.
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -175,6 +176,13 @@ CLASS zbp_r_pru_agent_au DEFINITION
         reported    TYPE tr_reported
         failed      TYPE tr_failed.
 
+    METHODS create_agent_via_eml
+      IMPORTING
+        agent_name   TYPE string
+        agent_type   TYPE string DEFAULT 'DEFAULT'
+      RETURNING
+        VALUE(rv_uuid) TYPE sysuuid_x16.
+
     METHODS assert_reported_msg
       IMPORTING
         reported      TYPE tr_reported
@@ -198,8 +206,13 @@ ENDCLASS.
 CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD class_setup.
-    mo_cds_test_env = cl_cds_test_environment=>create(
-        i_for_entity = 'ZR_PRU_AGENT'
+    mo_cds_test_env = cl_cds_test_environment=>create_for_multiple_cds(
+        i_for_entities = VALUE #(
+            ( i_for_entity = 'ZI_PRU_AGENT' )
+            ( i_for_entity = 'ZI_PRU_AGENT_TYPE' )
+            ( i_for_entity = 'ZPRU_AGENT_D' )
+            ( i_for_entity = 'ZPRU_AGENTTOOL_D' )
+        )
     ).
   ENDMETHOD.
 
@@ -291,10 +304,18 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
     mapped   = lt_mapped.
   ENDMETHOD.
 
-  METHOD create_tool_eml.
-    DATA lt_reported TYPE tr_reported.
-    DATA lt_failed   TYPE tr_failed.
+  METHOD create_agent_via_eml.
+    create_agent_eml(
+      EXPORTING
+        agent_name = agent_name
+        agent_type = agent_type
+      IMPORTING
+        mapped = DATA(lt_mapped) ).
+    COMMIT ENTITIES IN SIMULATION MODE.
+    rv_uuid = lt_mapped-agent[ %cid = 'CID_01' ]-AIPF7AgentUUID.
+  ENDMETHOD.
 
+  METHOD create_tool_eml.
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY Agent
         CREATE BY \_tool
@@ -306,10 +327,16 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
                                            AIPF7ToolSchemaProvider = tool_schema
                                            AIPF7ToolInfoProvider   = tool_info ) )
                         %tky-AIPF7AgentUUID = agent_uuid ) )
-        REPORTED lt_reported
-        FAILED   lt_failed.
-    reported = lt_reported.
-    failed   = lt_failed.
+        REPORTED DATA(lt_reported_mod)
+        FAILED   DATA(lt_failed_mod).
+    COMMIT ENTITIES IN SIMULATION MODE
+        RESPONSE OF zr_pru_agent
+        FAILED   DATA(lt_failed_late)
+        REPORTED DATA(lt_reported_late).
+    reported-agent      = CORRESPONDING #( lt_reported_late-agent ).
+    reported-agenttool  = CORRESPONDING #( lt_reported_late-agenttool ).
+    failed-agent        = CORRESPONDING #( lt_failed_late-agent ).
+    failed-agenttool    = CORRESPONDING #( lt_failed_late-agenttool ).
   ENDMETHOD.
 
   METHOD assert_reported_msg.
@@ -1097,10 +1124,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
   METHOD check_tool_name_empty_keys.
     " create_tool_eml with valid data — unique name
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_NM_AG' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_NM_AG' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'UNIQUE_TOOL_1'
       IMPORTING
         reported = DATA(lt_reported) ).
@@ -1109,10 +1136,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_name_unique.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_NM_UNIQ' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_NM_UNIQ' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'UNIQUE_TOOL_2'
       IMPORTING
         reported = DATA(lt_reported) ).
@@ -1121,11 +1148,11 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_name_duplicate.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_DUP_AG' ).
-    insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'DUP_TOOL' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_DUP_AG' ).
+    insert_tool( agent_uuid = lv_agent_uuid tool_name = 'DUP_TOOL' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'DUP_TOOL'
       IMPORTING
         reported = DATA(lt_reported) ).
@@ -1135,10 +1162,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_provider_initial.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_PRV_INIT' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_PRV_INIT' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TOOL_PRV_I_1'
         tool_prov  = ''
       IMPORTING
@@ -1149,10 +1176,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_provider_not_exist.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_PRV_NEX' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_PRV_NEX' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TOOL_PRV_NEX1'
         tool_prov  = 'Z_NONEXISTENT_XYZ'
       IMPORTING
@@ -1163,10 +1190,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_provider_no_if.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TOOL_PRV_NOIF' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TOOL_PRV_NOIF' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TOOL_PRV_NOIF1'
         tool_prov  = 'CL_ABAP_CHAR_UTILITIES'
       IMPORTING
@@ -1177,10 +1204,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_step_type_initial.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'ST_TY_INIT' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'ST_TY_INIT' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'ST_TY_I_1'
         step_type  = ''
       IMPORTING
@@ -1191,10 +1218,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_step_type_invalid.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'ST_TY_BAD' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'ST_TY_BAD' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'ST_TY_BAD1'
         step_type  = 'X'
       IMPORTING
@@ -1205,11 +1232,11 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_step_type_valid.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'ST_TY_OK' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'ST_TY_OK' ).
     " Test with 'B' (ABAP Code) — one of valid values
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'ST_TY_OK_B'
         step_type  = 'B'
       IMPORTING
@@ -1219,10 +1246,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_schema_opt_empty.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TSC_EMPTY' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TSC_EMPTY' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid  = ls_agent-agentuuid
+        agent_uuid  = lv_agent_uuid
         tool_name   = 'TSC_EMPTY_1'
         tool_schema = ''
       IMPORTING
@@ -1232,10 +1259,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_schema_not_exist.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TSC_NOEX' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TSC_NOEX' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid  = ls_agent-agentuuid
+        agent_uuid  = lv_agent_uuid
         tool_name   = 'TSC_NOEX_1'
         tool_schema = 'Z_NONEXISTENT_XYZ'
       IMPORTING
@@ -1246,10 +1273,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_schema_no_if.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TSC_NOIF' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TSC_NOIF' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid  = ls_agent-agentuuid
+        agent_uuid  = lv_agent_uuid
         tool_name   = 'TSC_NOIF_1'
         tool_schema = 'CL_ABAP_CHAR_UTILITIES'
       IMPORTING
@@ -1260,10 +1287,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_info_opt_empty.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TINF_EMPTY' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TINF_EMPTY' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TINF_EMPTY_1'
         tool_info  = ''
       IMPORTING
@@ -1273,10 +1300,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_info_not_exist.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TINF_NOEX' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TINF_NOEX' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TINF_NOEX_1'
         tool_info  = 'Z_NONEXISTENT_XYZ'
       IMPORTING
@@ -1287,10 +1314,10 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD check_tool_info_no_if.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TINF_NOIF' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TINF_NOIF' ).
     create_tool_eml(
       EXPORTING
-        agent_uuid = ls_agent-agentuuid
+        agent_uuid = lv_agent_uuid
         tool_name  = 'TINF_NOIF_1'
         tool_info  = 'CL_ABAP_CHAR_UTILITIES'
       IMPORTING
@@ -1301,8 +1328,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_prov_empty_param.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_PRV' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_PRV_T1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_PRV' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_PRV_T1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1318,8 +1345,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_prov_success.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_PRV_OK' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_PRV_OK1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_PRV_OK' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_PRV_OK1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1335,8 +1362,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_schema_empty_ok.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_SC' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_SC_T1'
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_SC' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_SC_T1'
                                   tool_schema = 'CL_ABAP_CHAR_UTILITIES' ).
 
     MODIFY ENTITIES OF zr_pru_agent
@@ -1353,8 +1380,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_schema_success.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_SC_OK' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_SC_OK1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_SC_OK' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_SC_OK1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1370,8 +1397,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_info_empty_ok.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_INF' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_INF_T1'
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_INF' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_INF_T1'
                                   tool_info = 'CL_ABAP_CHAR_UTILITIES' ).
 
     MODIFY ENTITIES OF zr_pru_agent
@@ -1388,8 +1415,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_tool_info_success.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_INF_OK' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_INF_OK1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_INF_OK' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_INF_OK1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1405,8 +1432,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_step_type_empty.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_ST' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_ST_T1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_ST' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_ST_T1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1422,8 +1449,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_step_type_invalid.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_ST_BAD' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_ST_BAD1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_ST_BAD' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_ST_BAD1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1439,8 +1466,8 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
 
   METHOD change_step_type_success.
     insert_agent_type( ).
-    DATA(ls_agent) = insert_agent( agent_name = 'TACT_ST_OK' ).
-    DATA(ls_tool) = insert_tool( agent_uuid = ls_agent-agentuuid tool_name = 'TACT_ST_OK1' ).
+    DATA(lv_agent_uuid) = create_agent_via_eml( 'TACT_ST_OK' ).
+    DATA(ls_tool) = insert_tool( agent_uuid = lv_agent_uuid tool_name = 'TACT_ST_OK1' ).
 
     MODIFY ENTITIES OF zr_pru_agent
         ENTITY AgentTool
@@ -1455,3 +1482,4 @@ CLASS zbp_r_pru_agent_au IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+

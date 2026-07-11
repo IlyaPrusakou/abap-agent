@@ -39,12 +39,22 @@ ENDCLASS.
 
 CLASS lhc_zr_pru_axc_head DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF state_area,
+        checkagentuuid TYPE string VALUE 'CHECKAGENTUUID',
+        checkuserid    TYPE string VALUE 'CHECKUSERID',
+      END OF state_area.
+
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING
       REQUEST requested_authorizations FOR executionheader
       RESULT result.
     METHODS generaterunid FOR DETERMINE ON MODIFY
       IMPORTING keys FOR executionheader~generaterunid.
+    METHODS checkagentuuid FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionheader~checkAgentUuid.
+    METHODS checkuserid FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionheader~checkUserId.
 ENDCLASS.
 
 
@@ -107,14 +117,157 @@ CLASS lhc_zr_pru_axc_head IMPLEMENTATION.
       reported = CORRESPONDING #( DEEP ls_upd_reported ).
     ENDIF.
   ENDMETHOD.
+  METHOD checkagentuuid.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionheader
+         FIELDS ( AIPF7AgentUUID )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_head).
+
+    IF lt_head IS NOT INITIAL.
+      SELECT AIPF7AgentUUID
+        FROM zr_pru_agent
+        FOR ALL ENTRIES IN @lt_head
+        WHERE AIPF7AgentUUID = @lt_head-AIPF7AgentUUID
+        INTO TABLE @DATA(lt_existing_agents)
+        PRIVILEGED ACCESS.
+    ENDIF.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionheader ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkagentuuid.
+
+      ASSIGN lt_head[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_head>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_head>-AIPF7AgentUUID IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionheader ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_head>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionheader ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_head>-%tky.
+        <ls_report>-%state_area = state_area-checkagentuuid.
+        <ls_report>-%element-AIPF7AgentUUID = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Agent UUID must not be initial.| ).
+        CONTINUE.
+      ENDIF.
+
+      IF NOT line_exists( lt_existing_agents[ AIPF7AgentUUID = <ls_head>-AIPF7AgentUUID ] ).
+        APPEND INITIAL LINE TO failed-executionheader ASSIGNING <ls_fail>.
+        <ls_fail>-%tky        = <ls_head>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionheader ASSIGNING <ls_report>.
+        <ls_report>-%tky        = <ls_head>-%tky.
+        <ls_report>-%state_area = state_area-checkagentuuid.
+        <ls_report>-%element-AIPF7AgentUUID = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Agent with UUID '{ <ls_head>-AIPF7AgentUUID }' does not exist.| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionheader ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionheader ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkagentuuid.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution header not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD checkuserid.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionheader
+         FIELDS ( AIPF7UserID )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_head).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionheader ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkuserid.
+
+      ASSIGN lt_head[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_head>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_head>-AIPF7UserID IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionheader ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_head>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionheader ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_head>-%tky.
+        <ls_report>-%state_area = state_area-checkuserid.
+        <ls_report>-%element-AIPF7UserID = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |User ID must not be initial.| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionheader ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionheader ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkuserid.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution header not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
 ENDCLASS.
 
 
 CLASS lhc_executionquery DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
   PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF state_area,
+        checkquerystatus TYPE string VALUE 'CHECKQUERYSTATUS',
+      END OF state_area.
+
     METHODS generatequeryid FOR DETERMINE ON MODIFY
       IMPORTING keys FOR executionquery~generatequeryid.
+    METHODS checkquerystatus FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionquery~checkQueryStatus.
 
 ENDCLASS.
 
@@ -207,14 +360,103 @@ CLASS lhc_executionquery IMPLEMENTATION.
       reported = CORRESPONDING #( DEEP ls_upd_reported ).
     ENDIF.
   ENDMETHOD.
+  METHOD checkquerystatus.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionquery
+         FIELDS ( AIPF7QueryStatus )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_query).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionquery ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkquerystatus.
+
+      ASSIGN lt_query[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_query>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_query>-AIPF7QueryStatus IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionquery ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_query>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionquery ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_query>-%tky.
+        <ls_report>-%state_area = state_area-checkquerystatus.
+        <ls_report>-%element-AIPF7QueryStatus = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Query status must not be initial.| ).
+        CONTINUE.
+      ENDIF.
+
+      IF NOT ( <ls_query>-AIPF7QueryStatus = 'N'
+            OR <ls_query>-AIPF7QueryStatus = 'E'
+            OR <ls_query>-AIPF7QueryStatus = 'C' ).
+        APPEND INITIAL LINE TO failed-executionquery ASSIGNING <ls_fail>.
+        <ls_fail>-%tky        = <ls_query>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionquery ASSIGNING <ls_report>.
+        <ls_report>-%tky        = <ls_query>-%tky.
+        <ls_report>-%state_area = state_area-checkquerystatus.
+        <ls_report>-%element-AIPF7QueryStatus = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Query status '{ <ls_query>-AIPF7QueryStatus }' is invalid. Valid values are: N (New), E (Error), C (Complete).| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionquery ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionquery ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkquerystatus.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution query not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
 ENDCLASS.
 
 
 CLASS lhc_executionstep DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
   PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF state_area,
+        checktooluuid         TYPE string VALUE 'CHECKTOOLUUID',
+        checkstepstatus       TYPE string VALUE 'CHECKSTEPSTATUS',
+        checkstepsequence     TYPE string VALUE 'CHECKSTEPSEQUENCE',
+        checkstepsequenceunique TYPE string VALUE 'CHECKSTEPSEQUENCEUNIQUE',
+      END OF state_area.
+
     METHODS generatestepid FOR DETERMINE ON MODIFY
       IMPORTING keys FOR executionstep~generatestepid.
+    METHODS checktooluuid FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionstep~checkToolUuid.
+    METHODS checkstepstatus FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionstep~checkStepStatus.
+    METHODS checkstepsequence FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionstep~checkStepSequence.
+    METHODS checkstepsequenceunique FOR VALIDATE ON SAVE
+      IMPORTING keys FOR executionstep~checkStepSequenceUnique.
 
 ENDCLASS.
 
@@ -314,6 +556,292 @@ CLASS lhc_executionstep IMPLEMENTATION.
       reported = CORRESPONDING #( DEEP ls_upd_reported ).
     ENDIF.
   ENDMETHOD.
+  METHOD checktooluuid.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionstep
+         FIELDS ( AIPF7ToolUuid )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_step).
+
+    IF lt_step IS NOT INITIAL.
+      SELECT AIPF7ToolUuid
+        FROM zr_pru_agent_tool
+        FOR ALL ENTRIES IN @lt_step
+        WHERE AIPF7ToolUuid = @lt_step-AIPF7ToolUuid
+        INTO TABLE @DATA(lt_existing_tools)
+        PRIVILEGED ACCESS.
+    ENDIF.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checktooluuid.
+
+      ASSIGN lt_step[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_step>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_step>-AIPF7ToolUuid IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checktooluuid.
+        <ls_report>-%element-AIPF7ToolUuid = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Tool UUID must not be initial.| ).
+        CONTINUE.
+      ENDIF.
+
+      IF NOT line_exists( lt_existing_tools[ AIPF7ToolUuid = <ls_step>-AIPF7ToolUuid ] ).
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checktooluuid.
+        <ls_report>-%element-AIPF7ToolUuid = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Tool with UUID '{ <ls_step>-AIPF7ToolUuid }' does not exist.| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checktooluuid.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution step not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD checkstepstatus.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionstep
+         FIELDS ( AIPF7StepStatus )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_step).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkstepstatus.
+
+      ASSIGN lt_step[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_step>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_step>-AIPF7StepStatus IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checkstepstatus.
+        <ls_report>-%element-AIPF7StepStatus = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Step status must not be initial.| ).
+        CONTINUE.
+      ENDIF.
+
+      IF NOT ( <ls_step>-AIPF7StepStatus = 'N'
+            OR <ls_step>-AIPF7StepStatus = 'E'
+            OR <ls_step>-AIPF7StepStatus = 'C' ).
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checkstepstatus.
+        <ls_report>-%element-AIPF7StepStatus = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Step status '{ <ls_step>-AIPF7StepStatus }' is invalid. Valid values are: N (New), E (Error), C (Complete).| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkstepstatus.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution step not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD checkstepsequence.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionstep
+         FIELDS ( AIPF7StepSequence )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_step).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkstepsequence.
+
+      ASSIGN lt_step[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_step>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_step>-AIPF7StepSequence IS INITIAL.
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checkstepsequence.
+        <ls_report>-%element-AIPF7StepSequence = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Step sequence must not be initial.| ).
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkstepsequence.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution step not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD checkstepsequenceunique.
+    DATA lt_not_found LIKE keys.
+
+    IF keys IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ ENTITIES OF zr_pru_axc_head IN LOCAL MODE
+         ENTITY executionstep
+         FIELDS ( AIPF7RunUuid AIPF7StepSequence )
+         WITH CORRESPONDING #( keys )
+         RESULT DATA(lt_step).
+
+    IF lt_step IS NOT INITIAL.
+      SELECT AIPF7StepUuid,
+             AIPF7RunUuid,
+             AIPF7StepSequence
+        FROM zr_pru_axc_step
+        FOR ALL ENTRIES IN @lt_step
+        WHERE AIPF7RunUuid = @lt_step-AIPF7RunUuid
+        INTO TABLE @DATA(lt_existing_steps)
+        PRIVILEGED ACCESS.
+    ENDIF.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<ls_key>).
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_inval>).
+      <ls_inval>-%tky        = <ls_key>-%tky.
+      <ls_inval>-%state_area = state_area-checkstepsequenceunique.
+
+      ASSIGN lt_step[ KEY id COMPONENTS %tky = <ls_key>-%tky ] TO FIELD-SYMBOL(<ls_step>).
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO lt_not_found ASSIGNING FIELD-SYMBOL(<ls_not_found>).
+        <ls_not_found> = <ls_key>.
+        CONTINUE.
+      ENDIF.
+
+      " Skip initial sequences (handled by checkstepsequence)
+      IF <ls_step>-AIPF7StepSequence IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      " Check for duplicate sequence within the same run (exclude self)
+      LOOP AT lt_existing_steps ASSIGNING FIELD-SYMBOL(<ls_exist>)
+          WHERE AIPF7RunUuid       = <ls_step>-AIPF7RunUuid
+            AND AIPF7StepSequence  = <ls_step>-AIPF7StepSequence
+            AND AIPF7StepUuid     <> <ls_step>-AIPF7StepUuid.
+        APPEND INITIAL LINE TO failed-executionstep ASSIGNING FIELD-SYMBOL(<ls_fail>).
+        <ls_fail>-%tky        = <ls_step>-%tky.
+        <ls_fail>-%fail-cause = if_abap_behv=>cause-conflict.
+
+        APPEND INITIAL LINE TO reported-executionstep ASSIGNING FIELD-SYMBOL(<ls_report>).
+        <ls_report>-%tky        = <ls_step>-%tky.
+        <ls_report>-%state_area = state_area-checkstepsequenceunique.
+        <ls_report>-%element-AIPF7StepSequence = if_abap_behv=>mk-on.
+        <ls_report>-%msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text     = |Step sequence '{ <ls_step>-AIPF7StepSequence }' is already used within this execution run. Please use a unique sequence number.| ).
+        EXIT.
+      ENDLOOP.
+
+    ENDLOOP.
+
+    LOOP AT lt_not_found ASSIGNING <ls_not_found>.
+      APPEND INITIAL LINE TO failed-executionstep ASSIGNING <ls_fail>.
+      <ls_fail>-%tky        = <ls_not_found>-%tky.
+      <ls_fail>-%fail-cause = if_abap_behv=>cause-not_found.
+
+      APPEND INITIAL LINE TO reported-executionstep ASSIGNING <ls_report>.
+      <ls_report>-%tky        = <ls_not_found>-%tky.
+      <ls_report>-%state_area = state_area-checkstepsequenceunique.
+      <ls_report>-%msg = new_message_with_text(
+          severity = if_abap_behv_message=>severity-error
+          text     = |Execution step not found.| ).
+    ENDLOOP.
+  ENDMETHOD.
+
 ENDCLASS.
 
 

@@ -33,6 +33,9 @@ authorization master ( global )
 
   determination GenerateRunID on modify { create; }
 
+  validation checkAgentUuid on save { field AIPF7AgentUUID; }
+  validation checkUserId on save { field AIPF7UserID; }
+
   mapping for zpru_axc_head corresponding extensible
     {
       AIPF7RunUUID          = runuuid;
@@ -71,6 +74,8 @@ authorization dependent by _executionheader
 
   determination GenerateQueryID on modify { create; }
 
+  validation checkQueryStatus on save { field AIPF7QueryStatus; }
+
   mapping for zpru_axc_query corresponding extensible
     {
       AIPF7QueryUuid       = queryuuid;
@@ -108,6 +113,11 @@ authorization dependent by _executionheader
 
 
   determination GenerateStepID on modify { create; }
+
+  validation checkToolUuid on save { field AIPF7ToolUuid; }
+  validation checkStepStatus on save { field AIPF7StepStatus; }
+  validation checkStepSequence on save { field AIPF7StepSequence; }
+  validation checkStepSequenceUnique on save { field AIPF7StepSequence; }
 
   mapping for zpru_axc_step corresponding extensible
     {

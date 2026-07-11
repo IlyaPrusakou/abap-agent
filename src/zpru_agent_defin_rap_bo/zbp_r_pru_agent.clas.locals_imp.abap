@@ -1362,6 +1362,8 @@ CLASS lhc_zr_pru_agent_tool DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION AgentTool~changeToolInfoProvider.
     METHODS changesteptype FOR MODIFY
       IMPORTING keys FOR ACTION AgentTool~changeStepType.
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR AgentTool RESULT result.
 ENDCLASS.
 
 
@@ -2035,4 +2037,7 @@ CLASS lhc_zr_pru_agent_tool IMPLEMENTATION.
              WITH lt_update.
     ENDIF.
   ENDMETHOD.
+  METHOD get_global_authorizations.
+  ENDMETHOD.
+
 ENDCLASS.
